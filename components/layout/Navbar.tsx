@@ -1,6 +1,5 @@
 "use client";
-
-import { Search, Sun, Moon, ChevronDown } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -17,7 +16,6 @@ const pageTitles: Record<string, string> = {
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [dark, setDark] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const title = pageTitles[pathname] || "Dashboard";
@@ -52,14 +50,14 @@ export default function Navbar() {
             <Search size={18} />
           </button>
 
-          {/* Theme toggle */}
+          {/* Theme toggle
           <button
             onClick={() => setDark(!dark)}
             className="p-2 rounded-xl hover:bg-gray-50 text-gray-500 transition-colors"
             title="Toggle theme"
           >
             {dark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          </button> */}
 
           {/* Profile */}
           <button className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
