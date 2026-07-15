@@ -18,8 +18,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function StudentProfilePage() {
+function StudentProfileContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id") || "1";
   const student = mockStudents.find((s) => s.id === id) || mockStudents[0];
@@ -167,5 +168,13 @@ export default function StudentProfilePage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function StudentProfilePage() {
+  return (
+    <Suspense fallback={<DashboardLayout><div className="max-w-4xl mx-auto animate-fade-in" /></DashboardLayout>}>
+      <StudentProfileContent />
+    </Suspense>
   );
 }
