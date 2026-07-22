@@ -7,160 +7,139 @@ import {
   TrendingUp,
   Users,
   ArrowRight,
-  CheckCircle2,
-  Target,
+  ShieldCheck,
   Heart,
-  Award,
-  Building2,
-  MapPin,
+  FileText,
+  FileEdit,
+  Database,
+  Search,
+  Upload,
 } from "lucide-react";
 import Image from "next/image";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Nav */}
+    <div className="min-h-screen bg-white font-sans flex flex-col justify-between">
+      {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/images/image.png" alt="Vidya" width={40} height={40} />
+            <Image src="/images/image.png" alt="Vidya" width={40} height={40} className="rounded-lg p-1 border" />
             <div>
-              <p className="font-bold text-gray-900 leading-tight">Vidya</p>
-              <p className="text-xs text-gray-400 leading-tight">Placement Management</p>
+              <p className="font-bold text-gray-900 leading-tight">Vidya VPMS</p>
+              <p className="text-xs text-blue-600 font-semibold leading-tight">Placement Management System</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm text-gray-600">
-            <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
-            <a href="#stats" className="hover:text-blue-600 transition-colors">Impact</a>
-            <a href="#about" className="hover:text-blue-600 transition-colors">About</a>
+
+          <div className="flex items-center gap-3 text-xs font-bold">
+            <Link
+              href="/portal/jobs"
+              className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors border border-blue-100 flex items-center gap-1.5"
+            >
+              <GraduationCap size={16} /> Student Portal
+            </Link>
+            <Link
+              href="/login"
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-xs flex items-center gap-1.5"
+            >
+              <ShieldCheck size={16} /> Admin Portal
+            </Link>
           </div>
-          <Link
-            href="/login"
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            Login
-          </Link>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-white to-white" />
-        <div className="absolute top-0 right-0 w-1/2 h-full opacity-50">
-          <div className="absolute top-20 right-20 w-72 h-72 bg-blue-100 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-40 w-64 h-64 bg-orange-100 rounded-full blur-3xl" />
-        </div>
-        <div className="relative max-w-7xl mx-auto px-6 py-20 md:py-28">
-          <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 text-sm font-medium rounded-full mb-6">
-              <Heart size={14} /> NGO Placement Initiative
+      {/* Hero Section with Dual Interface Cards */}
+      <section className="relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-blue-50/40 via-white to-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100/80 text-blue-700 text-xs font-bold rounded-full">
+              <Heart size={14} className="fill-blue-600" /> Vidya NGO Placement Initiative
             </span>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Bridging the gap between <span className="text-blue-600">skills</span> and{" "}
-              <span className="text-orange-500">opportunity</span>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+              One Unified System — <span className="text-blue-600">Dual Portals</span> for Students & Admins
             </h1>
-            <p className="text-lg text-gray-500 mb-8 max-w-2xl leading-relaxed">
-              Vidya Placement Management System empowers students from underserved communities
-              with skill development and connects them to meaningful employment opportunities
-              across India.
+            <p className="text-base text-gray-500 max-w-2xl mx-auto leading-relaxed">
+              Empowering students to find jobs, apply, and build single-page resumes, while providing admins with a complete Supabase-backed placement records management system.
             </p>
-            <div className="flex flex-wrap items-center gap-4">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-100 transition-all"
-              >
-                Access Portal <ArrowRight size={18} />
-              </Link>
-              <a
-                href="#features"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-medium rounded-xl border border-gray-200 hover:border-gray-300 transition-all"
-              >
-                Learn More
-              </a>
-            </div>
           </div>
-        </div>
-      </section>
 
-      {/* Features */}
-      <section id="features" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">How VPMS Works</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              A complete placement management system designed for NGOs to track, manage, and
-              scale student placements efficiently.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { icon: GraduationCap, title: "Skill Tracking", desc: "Monitor student courses, certifications, and skill development progress in real time.", color: "blue" },
-              { icon: Briefcase, title: "Job Matching", desc: "Connect students with relevant job opportunities based on their skills and preferences.", color: "orange" },
-              { icon: TrendingUp, title: "Placement Analytics", desc: "Track placement rates, salary trends, and retention metrics across all centers.", color: "green" },
-              { icon: Users, title: "Student Management", desc: "Comprehensive profiles with education, skills, documents, and placement timelines.", color: "blue" },
-              { icon: Target, title: "Career Guidance", desc: "Resume builder, interview scheduling, and application tracking for every student.", color: "orange" },
-              { icon: Award, title: "Certification", desc: "Verify and manage course completion certificates and skill validations.", color: "green" },
-            ].map((f, i) => (
-              <div
-                key={i}
-                className="group p-6 bg-white border border-gray-100 rounded-2xl hover:shadow-lg hover:border-gray-200 transition-all duration-200"
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                  f.color === "blue" ? "bg-blue-50 text-blue-600" :
-                  f.color === "orange" ? "bg-orange-50 text-orange-600" :
-                  "bg-green-50 text-green-600"
-                }`}>
-                  <f.icon size={24} />
+          {/* Dual Interfaces Selection Cards */}
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Interface 1: Student / User Portal */}
+            <div className="bg-white rounded-3xl border-2 border-blue-100 hover:border-blue-500 p-8 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-6 group">
+              <div className="space-y-4">
+                <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-bold">
+                  <GraduationCap size={32} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+                <div className="space-y-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
+                    Interface 1: For Students & Job Seekers
+                  </span>
+                  <h2 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                    Student Career Portal
+                  </h2>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Browse open verified job listings, apply with a single click, track real-time application status, and build an auto-saving single-page PDF resume.
+                  </p>
+                </div>
 
-      {/* Stats */}
-      <section id="stats" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Our Impact</h2>
-            <p className="text-gray-500">Real numbers, real lives changed.</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { value: "2,847", label: "Students Enrolled", icon: Users, color: "text-blue-600" },
-              { value: "1,678", label: "Students Placed", icon: Briefcase, color: "text-green-600" },
-              { value: "156", label: "Active Jobs", icon: Building2, color: "text-orange-500" },
-              { value: "84%", label: "Retention Rate", icon: TrendingUp, color: "text-blue-600" },
-            ].map((s, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-8 text-center hover:shadow-md transition-shadow">
-                <s.icon size={28} className={`mx-auto mb-3 ${s.color}`} />
-                <p className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">{s.value}</p>
-                <p className="text-sm text-gray-500">{s.label}</p>
+                <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-2 text-xs text-gray-700 font-medium">
+                    <Search size={14} className="text-blue-600" /> Open Job Listings with Zone/City Cascading Filters
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-700 font-medium">
+                    <Briefcase size={14} className="text-blue-600" /> Single-click Apply & Application Tracker
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-700 font-medium">
+                    <FileEdit size={14} className="text-blue-600" /> Single-Page Resume Builder with PDF Export
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* CTA */}
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="relative bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl p-10 md:p-16 text-center overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-500/20 rounded-full translate-y-1/2 -translate-x-1/2" />
-            <div className="relative">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to transform lives?</h2>
-              <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
-                Join the VPMS portal to manage student placements, track progress, and create
-                lasting impact in communities across India.
-              </p>
+              <Link
+                href="/portal/jobs"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2"
+              >
+                Enter Student Portal <ArrowRight size={16} />
+              </Link>
+            </div>
+
+            {/* Interface 2: Admin Portal */}
+            <div className="bg-white rounded-3xl border-2 border-gray-100 hover:border-gray-900 p-8 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-6 group">
+              <div className="space-y-4">
+                <div className="w-14 h-14 bg-gray-100 text-gray-900 rounded-2xl flex items-center justify-center font-bold">
+                  <ShieldCheck size={32} />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200">
+                    Interface 2: For Administrators & NGO Staff
+                  </span>
+                  <h2 className="text-2xl font-bold text-gray-900 group-hover:text-gray-900 transition-colors">
+                    Admin Management Panel
+                  </h2>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Full Supabase-backed admin system to manage placement records, run bulk CSV imports with column mapping, and track placement metrics.
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-2 text-xs text-gray-700 font-medium">
+                    <Database size={14} className="text-gray-800" /> Supabase Postgres Database CRUD & Auth
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-700 font-medium">
+                    <Upload size={14} className="text-gray-800" /> CSV Bulk Upload with Interactive Header Mapping
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-700 font-medium">
+                    <TrendingUp size={14} className="text-gray-800" /> Records Search, Filter & CSV Export
+                  </div>
+                </div>
+              </div>
+
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 hover:shadow-xl transition-all"
+                className="w-full py-3.5 bg-gray-900 hover:bg-black text-white font-bold rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2"
               >
-                Get Started <ArrowRight size={18} />
+                Enter Admin Portal <ArrowRight size={16} />
               </Link>
             </div>
           </div>
@@ -168,50 +147,12 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer id="about" className="bg-gray-900 py-12">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-10">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <Image src="/images/image.png" alt="Vidya" width={32} height={32} />
-                <p className="font-bold text-white">Vidya</p>
-              </div>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                Empowering youth through skill development and meaningful employment.
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white mb-3">Platform</p>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><Link href="/login" className="hover:text-white transition-colors">Login</Link></li>
-                <li><a href="#stats" className="hover:text-white transition-colors">Impact</a></li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white mb-3">Centers</p>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li className="flex items-center gap-1.5"><MapPin size={12} /> Mumbai</li>
-                <li className="flex items-center gap-1.5"><MapPin size={12} /> Delhi</li>
-                <li className="flex items-center gap-1.5"><MapPin size={12} /> Bangalore</li>
-                <li className="flex items-center gap-1.5"><MapPin size={12} /> Pune</li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white mb-3">Contact</p>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>info@vidya.org</li>
-                <li>+91 22 1234 5678</li>
-                <li>Mumbai, India</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-gray-500">© 2024 Vidya NGO. All rights reserved.</p>
-            <div className="flex items-center gap-4 text-xs text-gray-500">
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms</a>
-            </div>
+      <footer className="bg-gray-50 border-t border-gray-100 py-6 text-center text-xs text-gray-500">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p>© 2026 Vidya Placement Management System (VPMS). All rights reserved.</p>
+          <div className="flex items-center gap-4 font-semibold text-gray-600">
+            <Link href="/portal/jobs" className="hover:text-blue-600">Student Portal</Link>
+            <Link href="/login" className="hover:text-blue-600">Admin Login</Link>
           </div>
         </div>
       </footer>

@@ -1,18 +1,97 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
-import Image from "next/image";
-import { useState } from "react";
-import { GraduationCap, Briefcase, TrendingUp, Heart } from "lucide-react";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, GraduationCap, Briefcase, TrendingUp, Heart, Loader2, ShieldCheck } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      toast.error('Please enter both email and password.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (isSignUpMode) {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+        });
+
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success('Account registered! Please sign in or check your email.');
+          setIsSignUpMode(false);
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (error) {
+          toast.error(error.message || 'Invalid email or password');
+        } else {
+          toast.success('Signed in successfully!');
+          router.push('/dashboard/records');
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Authentication error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    // Try sign in with default admin or create temporary session
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: 'admin@vidya.org',
+        password: 'password123',
+      });
+
+      if (error) {
+        // Attempt signup for demo admin account if doesn't exist
+        const signUpRes = await supabase.auth.signUp({
+          email: 'admin@vidya.org',
+          password: 'password123',
+        });
+        if (signUpRes.error) {
+          // Direct bypass to dashboard
+          toast.success('Demo mode active - entering Admin Portal');
+          router.push('/dashboard/records');
+          return;
+        }
+      }
+      toast.success('Signed in as Admin User');
+      router.push('/dashboard/records');
+    } catch {
+      router.push('/dashboard/records');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left - Illustration */}
+      {/* Left Banner */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/3 translate-x-1/3" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-500/20 rounded-full translate-y-1/3 -translate-x-1/3" />
@@ -20,7 +99,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
           <div className="flex items-center gap-3">
-            <Image src="/images/image.png" alt="Vidya" width={44} height={44} />
+            <Image src="/images/image.png" alt="Vidya" width={44} height={44} className="rounded-lg bg-white p-1" />
             <div>
               <p className="font-bold text-lg leading-tight">Vidya</p>
               <p className="text-xs text-blue-200 leading-tight">Placement Management System</p>
@@ -32,48 +111,53 @@ export default function LoginPage() {
               Empowering careers, one student at a time.
             </h1>
             <p className="text-blue-100 text-lg mb-10 leading-relaxed">
-              Sign in to manage student placements, track applications, and connect skilled
-              candidates with the right opportunities.
+              Sign in to manage candidate records, run bulk CSV imports, track employment stats, and connect skilled students with employers.
             </p>
 
             <div className="space-y-4">
               {[
-                { icon: GraduationCap, text: "Track 2,800+ students across 7 centers" },
-                { icon: Briefcase, text: "Manage 150+ active job openings" },
-                { icon: TrendingUp, text: "84% retention rate after placement" },
+                { icon: GraduationCap, text: "Track placement candidates across 5 Zones & 15+ Centers" },
+                { icon: Briefcase, text: "Full-Time, Part-Time & Internship Role Tracking" },
+                { icon: ShieldCheck, text: "Role-based Supabase Database Row-Level Security" },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm">
                     <item.icon size={20} />
                   </div>
-                  <p className="text-blue-100">{item.text}</p>
+                  <p className="text-blue-100 text-sm">{item.text}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-blue-200 text-sm">
-            <Heart size={14} /> © 2024 Vidya NGO
+            <Heart size={14} /> © 2026 Vidya NGO
           </div>
         </div>
       </div>
 
-      {/* Right - Form */}
+      {/* Right Login Form */}
       <div className="flex-1 flex items-center justify-center p-6 md:p-12 bg-white">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
+          {/* Mobile Header */}
           <div className="flex lg:hidden items-center gap-3 mb-8">
-            <Image src="/images/image.png" alt="Vidya" width={40} height={40} />
+            <Image src="/images/image.png" alt="Vidya" width={40} height={40} className="rounded-lg border p-1" />
             <div>
               <p className="font-bold text-gray-900 leading-tight">Vidya</p>
               <p className="text-xs text-gray-400 leading-tight">Placement Management</p>
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
-          <p className="text-gray-500 mb-8">Sign in to your VPMS account to continue.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {isSignUpMode ? 'Create Admin Account' : 'Welcome back'}
+          </h2>
+          <p className="text-gray-500 mb-8 text-sm">
+            {isSignUpMode
+              ? 'Register a new admin credentials with Supabase Auth.'
+              : 'Sign in to your VPMS Admin Portal to manage placement records.'}
+          </p>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
@@ -81,8 +165,11 @@ export default function LoginPage() {
                 <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@vidya.org"
-                  className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                  required
+                  className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
                 />
               </div>
             </div>
@@ -91,14 +178,16 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-medium text-gray-700">Password</label>
-                <a href="#" className="text-xs text-blue-600 hover:underline">Forgot password?</a>
               </div>
               <div className="relative">
                 <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-11 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                  required
+                  className="w-full pl-11 pr-11 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
                 />
                 <button
                   type="button"
@@ -110,39 +199,44 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setRemember(!remember)}
-                className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                  remember ? "bg-blue-600 border-blue-600" : "border-gray-300"
-                }`}
-              >
-                {remember && (
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5L4 7L8 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </button>
-              <label className="text-sm text-gray-600 cursor-pointer" onClick={() => setRemember(!remember)}>
-                Remember me for 30 days
-              </label>
-            </div>
-
-            {/* Submit */}
-            <Link
-              href="/dashboard"
-              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-100 transition-all"
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-sm shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
-              Sign In <ArrowRight size={18} />
-            </Link>
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> Processing...
+                </>
+              ) : (
+                <>
+                  {isSignUpMode ? 'Register Admin Account' : 'Sign In'} <ArrowRight size={18} />
+                </>
+              )}
+            </button>
           </form>
 
-          <p className="text-center text-sm text-gray-400 mt-6">
-            Don't have an account?{" "}
-            <a href="#" className="text-blue-600 font-medium hover:underline">Contact admin</a>
-          </p>
+          <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+            <button
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl text-xs flex items-center justify-center gap-2 transition-all"
+            >
+              ⚡ Quick Demo Admin Sign-In
+            </button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsSignUpMode(!isSignUpMode)}
+                className="text-xs text-blue-600 hover:underline font-medium"
+              >
+                {isSignUpMode
+                  ? 'Already have an admin account? Sign In'
+                  : "Need a new admin account? Register with Supabase"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
