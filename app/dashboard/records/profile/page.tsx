@@ -60,8 +60,6 @@ function toDateTimeLocal(iso?: string | null) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-const RETENTION_STATUSES = ["N/A", "Retained", "At Risk", "Not Retained"];
-
 function toDateInput(iso?: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -93,8 +91,6 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
   const [joiningDate, setJoiningDate] = useState(toDateInput(app.joining_date));
   const [probationMonth, setProbationMonth] = useState(monthYearFromDate(app.probation_end_date).month);
   const [probationYear, setProbationYear] = useState(monthYearFromDate(app.probation_end_date).year);
-  const [retentionStatus, setRetentionStatus] = useState(app.retention_status || "N/A");
-  const [lastFollowUpDate, setLastFollowUpDate] = useState(toDateInput(app.last_follow_up_date));
   const [isSaving, setIsSaving] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [proofSignedUrl, setProofSignedUrl] = useState<string | null>(null);
@@ -120,8 +116,6 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
       salary_offered: salaryOffered.trim() || null,
       joining_date: joiningDate || null,
       probation_end_date: dateFromMonthYear(probationMonth, probationYear),
-      retention_status: retentionStatus,
-      last_follow_up_date: lastFollowUpDate || null,
     });
 
     if (res.success && res.data) {
@@ -197,17 +191,6 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
               ) : (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
                   <AlertCircle size={10} /> Proof not yet collected
-                </span>
-              )}
-              {app.retention_status && app.retention_status !== "N/A" && (
-                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
-                  app.retention_status === "Retained"
-                    ? "text-green-700 bg-green-50 border-green-200"
-                    : app.retention_status === "At Risk"
-                    ? "text-amber-700 bg-amber-50 border-amber-200"
-                    : "text-red-700 bg-red-50 border-red-200"
-                }`}>
-                  Retention: {app.retention_status}
                 </span>
               )}
             </div>
@@ -305,20 +288,6 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
                     View uploaded proof →
                   </a>
                 )}
-              </div>
-
-              <div className="md:col-span-2 pt-2 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-800 mb-2">Retention Tracking</p>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">Retention Status</label>
-                <select value={retentionStatus} onChange={(e) => setRetentionStatus(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs bg-white">
-                  {RETENTION_STATUSES.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">Last Follow-up Date</label>
-                <input type="date" value={lastFollowUpDate} onChange={(e) => setLastFollowUpDate(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs bg-white" />
               </div>
             </>
           )}

@@ -7,6 +7,7 @@ import {
   Database,
   Briefcase,
   Star,
+  CheckCircle2,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -20,6 +21,7 @@ import { toast } from 'sonner';
 const navItems = [
   { label: 'Placement Records', icon: Database, href: '/dashboard/records' },
   { label: 'Dashboard Overview', icon: LayoutDashboard, href: '/dashboard' },
+  { label: 'Selected Students', icon: CheckCircle2, href: '/dashboard/selected-students' },
   { label: 'Jobs', icon: Briefcase, href: '/dashboard/jobs' },
   { label: 'Success Stories', icon: Star, href: '/dashboard/success-stories' },
 ];

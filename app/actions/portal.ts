@@ -283,6 +283,65 @@ export async function fetchRecentApplicationsAdmin(limit: number = 5): Promise<{
   }
 }
 
+export interface SelectedStudentSummary {
+  id: string;
+  student_name: string;
+  student_email: string;
+  job_title: string;
+  company_name: string;
+  status: ApplicationStatus;
+  designation: string | null;
+  joining_date: string | null;
+  proof_document_url: string | null;
+}
+
+export async function fetchSelectedStudentsAdmin(): Promise<{ data: SelectedStudentSummary[]; error?: string }> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data: apps, error } = await (supabase.from('job_applications') as any)
+      .select('id, user_id, status, designation, joining_date, proof_document_url, job:jobs(title, company_name)')
+      .in('status', ['Selected', 'Joined'])
+      .order('updated_at', { ascending: false });
+
+    if (error || !apps) {
+      return { data: [], error: error?.message };
+    }
+
+    const userIds = Array.from(new Set(apps.map((a: any) => a.user_id).filter(Boolean)));
+    const emailByUserId: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await (supabase.from('profiles') as any).select('id, email').in('id', userIds);
+      (profiles || []).forEach((p: any) => { emailByUserId[p.id] = p.email; });
+    }
+
+    const emails = Object.values(emailByUserId);
+    const nameByEmail: Record<string, string> = {};
+    if (emails.length > 0) {
+      const { data: students } = await (supabase.from('students') as any).select('email, full_name').in('email', emails);
+      (students || []).forEach((s: any) => { if (s.email && s.full_name) nameByEmail[s.email] = s.full_name; });
+    }
+
+    const result: SelectedStudentSummary[] = apps.map((a: any) => {
+      const email = emailByUserId[a.user_id] || '';
+      return {
+        id: a.id,
+        student_name: (email && nameByEmail[email]) || email || 'Student',
+        student_email: email,
+        job_title: a.job?.title || 'Placement Application',
+        company_name: a.job?.company_name || 'Partner Employer',
+        status: a.status,
+        designation: a.designation,
+        joining_date: a.joining_date,
+        proof_document_url: a.proof_document_url,
+      };
+    });
+
+    return { data: result };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Failed to load selected students.' };
+  }
+}
+
 export async function fetchApplicationsByEmail(email: string): Promise<{ data: JobApplication[]; linked: boolean; error?: string }> {
   try {
     if (!email) {
@@ -322,8 +381,6 @@ export interface ApplicationStatusUpdate {
   salary_offered?: string | null;
   joining_date?: string | null;
   probation_end_date?: string | null;
-  retention_status?: string | null;
-  last_follow_up_date?: string | null;
 }
 
 async function syncStudentPlacementFromApplication(supabase: ReturnType<typeof createServerSupabaseClient>, app: any) {

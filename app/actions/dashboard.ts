@@ -6,11 +6,10 @@ export interface DashboardStats {
   totalStudents: number;
   activeJobs: number;
   placedStudents: number;
-  retainedStudents: number;
 }
 
 export async function fetchDashboardStats(): Promise<{ data: DashboardStats; error?: string }> {
-  const empty: DashboardStats = { totalStudents: 0, activeJobs: 0, placedStudents: 0, retainedStudents: 0 };
+  const empty: DashboardStats = { totalStudents: 0, activeJobs: 0, placedStudents: 0 };
 
   try {
     const supabase = createServerSupabaseClient();
@@ -19,12 +18,11 @@ export async function fetchDashboardStats(): Promise<{ data: DashboardStats; err
     // form (students table) and Placement Records manual entry / CSV import
     // (placement_records table) — deduplicated by email so the same person added
     // through both paths (e.g. backfilled portal signups) is only counted once.
-    const [studentEmailsRes, recordEmailsRes, jobsRes, placedRes, retainedRes] = await Promise.all([
+    const [studentEmailsRes, recordEmailsRes, jobsRes, placedRes] = await Promise.all([
       (supabase.from('students') as any).select('email'),
       (supabase.from('placement_records') as any).select('email'),
       (supabase.from('jobs') as any).select('*', { count: 'exact', head: true }).eq('status', 'Open'),
       (supabase.from('students') as any).select('*', { count: 'exact', head: true }).eq('status', 'Placed'),
-      (supabase.from('job_applications') as any).select('*', { count: 'exact', head: true }).eq('retention_status', 'Retained'),
     ]);
 
     const uniqueEmails = new Set<string>();
@@ -37,7 +35,6 @@ export async function fetchDashboardStats(): Promise<{ data: DashboardStats; err
         totalStudents: uniqueEmails.size,
         activeJobs: jobsRes.count || 0,
         placedStudents: placedRes.count || 0,
-        retainedStudents: retainedRes.count || 0,
       },
     };
   } catch (err: any) {

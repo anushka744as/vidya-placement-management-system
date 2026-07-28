@@ -331,7 +331,7 @@ export default function MyApplicationsPage() {
                     </div>
                   </div>
 
-                  {app.job?.external_link && app.status !== 'Applied' && (
+                  {app.job?.external_link && app.status === 'Link Opened' && (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                       <div className="flex items-start gap-2 text-xs text-amber-800">
                         <HelpCircle size={14} className="shrink-0 mt-0.5" />

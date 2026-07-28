@@ -6,15 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, GraduationCap, Briefcase, TrendingUp, Heart, Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { fetchUserRole } from '@/app/actions/auth';
 import { toast } from 'sonner';
-
-function getPasswordError(password: string): string | null {
-  if (password.length <= 6) return 'Password must be longer than 6 characters.';
-  if (!/[a-z]/.test(password)) return 'Password must include a lowercase letter.';
-  if (!/[A-Z]/.test(password)) return 'Password must include an uppercase letter.';
-  if (!/[0-9]/.test(password)) return 'Password must include a digit.';
-  return null;
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,7 +15,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,45 +23,33 @@ export default function LoginPage() {
       return;
     }
 
-    if (isSignUpMode) {
-      const passwordError = getPasswordError(password);
-      if (passwordError) {
-        toast.error(passwordError);
-        return;
-      }
-    }
-
     setLoading(true);
 
     try {
-      if (isSignUpMode) {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-        });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success('Account registered! Please sign in or check your email.');
-          setIsSignUpMode(false);
-        }
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-
-        if (error) {
-          toast.error(error.message || 'Invalid email or password');
-        } else {
-          toast.success('Signed in successfully!');
-          router.push('/dashboard/records');
-        }
+      if (error) {
+        toast.error(error.message || 'Invalid email or password');
+        setLoading(false);
+        return;
       }
+
+      const { role } = await fetchUserRole(data.user.id);
+
+      if (role !== 'admin') {
+        await supabase.auth.signOut();
+        toast.error('This account does not have admin access.');
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Signed in successfully!');
+      router.push('/dashboard/records');
     } catch (err: any) {
       toast.error(err.message || 'Authentication error');
-    } finally {
       setLoading(false);
     }
   };
@@ -133,14 +113,8 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {isSignUpMode ? 'Create Admin Account' : 'Welcome back'}
-          </h2>
-          <p className="text-gray-500 mb-8 text-sm">
-            {isSignUpMode
-              ? 'Register new admin credentials.'
-              : 'Sign in to your VPMS Admin Portal to manage placement records.'}
-          </p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
+          <p className="text-gray-500 mb-8 text-sm">Sign in to your VPMS Admin Portal to manage placement records.</p>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Email */}
@@ -171,7 +145,7 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
-                  autoComplete={isSignUpMode ? 'new-password' : 'current-password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -186,11 +160,6 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {isSignUpMode && (
-                <p className="mt-1.5 text-xs text-gray-400">
-                  Must be longer than 6 characters and include an uppercase letter, a lowercase letter, and a digit.
-                </p>
-              )}
             </div>
 
             <button
@@ -204,25 +173,15 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  {isSignUpMode ? 'Register Admin Account' : 'Sign In'} <ArrowRight size={18} />
+                  Sign In <ArrowRight size={18} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setIsSignUpMode(!isSignUpMode)}
-                className="text-xs text-blue-600 hover:underline font-medium"
-              >
-                {isSignUpMode
-                  ? 'Already have an admin account? Sign In'
-                  : "Need a new admin account? Register here"}
-              </button>
-            </div>
-          </div>
+          <p className="mt-6 text-center text-xs text-gray-400">
+            Admin accounts are provisioned by the placement team — this portal doesn't support self-registration.
+          </p>
         </div>
       </div>
     </div>

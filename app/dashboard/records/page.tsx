@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { RecordsTable } from '@/components/records/RecordsTable';
 import { ManualEntryForm } from '@/components/records/ManualEntryForm';
 import { CSVUploadWizard } from '@/components/records/CSVUploadWizard';
-import { Database, PlusCircle, Upload, Table, Sparkles, CheckCircle2, UserCheck, Briefcase } from 'lucide-react';
+import { Database, PlusCircle, Upload, Table } from 'lucide-react';
 
 export default function RecordsManagementPage() {
   const [activeTab, setActiveTab] = useState<'table' | 'manual' | 'csv'>('table');

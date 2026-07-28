@@ -4,7 +4,6 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { StatCard } from "@/components/shared/StatCard";
 import {
   Users,
-  Award,
   Briefcase,
   CheckCircle2,
   Building2,
@@ -40,12 +39,11 @@ export default function DashboardPage() {
           <p className="text-sm text-gray-400 mt-1">Welcome back, here's what's happening.</p>
         </div>
 
-        {/* 4 Key Stats Only */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Key Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
           <StatCard label="Total Students" value={isLoading ? "—" : (stats?.totalStudents ?? 0).toLocaleString()} icon={Users} color="blue" />
           <StatCard label="Active Jobs" value={isLoading ? "—" : (stats?.activeJobs ?? 0).toLocaleString()} icon={Briefcase} color="orange" />
           <StatCard label="Placed Students" value={isLoading ? "—" : (stats?.placedStudents ?? 0).toLocaleString()} icon={CheckCircle2} color="green" />
-          <StatCard label="Retained Students" value={isLoading ? "—" : (stats?.retainedStudents ?? 0).toLocaleString()} icon={Award} color="purple" />
         </div>
 
         {/* Application Pipeline */}

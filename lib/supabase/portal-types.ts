@@ -45,8 +45,6 @@ export interface JobApplication {
   designation?: string | null;
   salary_offered?: string | null;
   proof_document_url?: string | null;
-  retention_status?: string | null;
-  last_follow_up_date?: string | null;
   admin_notes?: string | null;
   self_reported_status?: ApplicationStatus | null;
   self_reported_at?: string | null;

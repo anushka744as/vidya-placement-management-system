@@ -9,6 +9,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard': 'Overview Dashboard',
   '/dashboard/records': 'Placement Records',
   '/dashboard/records/profile': 'Candidate Profile',
+  '/dashboard/selected-students': 'Selected Students',
   '/dashboard/jobs': 'Job Listings',
   '/dashboard/success-stories': 'Success Stories',
 };
