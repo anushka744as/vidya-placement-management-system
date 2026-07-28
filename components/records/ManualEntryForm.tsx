@@ -156,7 +156,7 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Sparkles size={20} className="text-blue-600" /> Manual Candidate Entry
           </h2>
-          <p className="text-xs text-gray-500 mt-1">Enter complete candidate placement record details into Supabase.</p>
+          <p className="text-xs text-gray-500 mt-1">Enter complete candidate placement record details.</p>
         </div>
         <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
           Source: Manual

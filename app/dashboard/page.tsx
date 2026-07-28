@@ -1,35 +1,37 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { StatCard, StatusBadge } from "@/components/shared/StatCard";
+import { StatCard } from "@/components/shared/StatCard";
 import {
   Users,
   Award,
   Briefcase,
   CheckCircle2,
-  ArrowRight,
+  Building2,
+  Loader2,
   Clock,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
-import {
-  mockStats,
-  mockPlacementTrend,
-  mockPlacementByCenter,
-  mockRecentApplications,
-  mockUpcomingInterviews,
-} from "@/lib/mock-data";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { fetchDashboardStats, DashboardStats, fetchApplicationPipelineCounts, ApplicationPipelineCounts } from "@/app/actions/dashboard";
+import { fetchRecentApplicationsAdmin, RecentApplicationSummary } from "@/app/actions/portal";
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [pipeline, setPipeline] = useState<ApplicationPipelineCounts | null>(null);
+  const [recentApplications, setRecentApplications] = useState<RecentApplicationSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([fetchDashboardStats(), fetchApplicationPipelineCounts(), fetchRecentApplicationsAdmin(5)]).then(([statsRes, pipelineRes, appsRes]) => {
+      setStats(statsRes.data);
+      setPipeline(pipelineRes.data);
+      setRecentApplications(appsRes.data);
+      setIsLoading(false);
+    });
+  }, []);
+
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in max-w-7xl mx-auto">
@@ -40,92 +42,83 @@ export default function DashboardPage() {
 
         {/* 4 Key Stats Only */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-          <StatCard label="Total Students" value={mockStats.totalStudents.toLocaleString()} icon={Users} trend="+12%" color="blue" />
-          <StatCard label="Active Jobs" value={mockStats.activeJobs} icon={Briefcase} trend="+15%" color="orange" />
-          <StatCard label="Placed Students" value={mockStats.placedStudents.toLocaleString()} icon={CheckCircle2} trend="+18%" color="green" />
-          <StatCard label="Certified" value={mockStats.certifiedStudents.toLocaleString()} icon={Award} trend="+8%" color="purple" />
+          <StatCard label="Total Students" value={isLoading ? "—" : (stats?.totalStudents ?? 0).toLocaleString()} icon={Users} color="blue" />
+          <StatCard label="Active Jobs" value={isLoading ? "—" : (stats?.activeJobs ?? 0).toLocaleString()} icon={Briefcase} color="orange" />
+          <StatCard label="Placed Students" value={isLoading ? "—" : (stats?.placedStudents ?? 0).toLocaleString()} icon={CheckCircle2} color="green" />
+          <StatCard label="Retained Students" value={isLoading ? "—" : (stats?.retainedStudents ?? 0).toLocaleString()} icon={Award} color="purple" />
         </div>
 
-        {/* Charts */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-6">Placement Trend</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={mockPlacementTrend} margin={{ left: -20, right: 10, top: 5 }}>
-                <defs>
-                  <linearGradient id="gradPlaced" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #E5E7EB", fontSize: 12 }} />
-                <Area type="monotone" dataKey="placed" stroke="#2563EB" strokeWidth={2.5} fill="url(#gradPlaced)" />
-              </AreaChart>
-            </ResponsiveContainer>
+        {/* Application Pipeline */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-semibold text-gray-900">Application Pipeline</h3>
+            {!isLoading && (pipeline?.pendingSelfReports ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+                <AlertCircle size={12} /> {pipeline!.pendingSelfReports} student-reported update{pipeline!.pendingSelfReports === 1 ? "" : "s"} awaiting confirmation
+              </span>
+            )}
           </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-6">By Center</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={mockPlacementByCenter} layout="vertical" margin={{ left: 0, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                <YAxis dataKey="center" type="category" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} width={70} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #E5E7EB", fontSize: 12 }} cursor={{ fill: "#F9FAFB" }} />
-                <Bar dataKey="placed" fill="#F97316" radius={[0, 6, 6, 0]} barSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Recent Applications + Upcoming Interviews */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold text-gray-900">Recent Applications</h3>
-              <button className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:gap-2 transition-all">
-                View All <ArrowRight size={14} />
-              </button>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="flex items-center gap-3 p-4 bg-amber-50/60 border border-amber-100 rounded-xl">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0"><Clock size={18} /></div>
+              <div>
+                <p className="text-xl font-bold text-gray-900">{isLoading ? "—" : pipeline?.shortlisted ?? 0}</p>
+                <p className="text-xs text-gray-500">Shortlisted</p>
+              </div>
             </div>
+            <div className="flex items-center gap-3 p-4 bg-amber-50/60 border border-amber-100 rounded-xl">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0"><Clock size={18} /></div>
+              <div>
+                <p className="text-xl font-bold text-gray-900">{isLoading ? "—" : pipeline?.interview ?? 0}</p>
+                <p className="text-xs text-gray-500">Interview Stage</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-green-50/60 border border-green-100 rounded-xl">
+              <div className="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center shrink-0"><CheckCircle2 size={18} /></div>
+              <div>
+                <p className="text-xl font-bold text-gray-900">{isLoading ? "—" : pipeline?.selected ?? 0}</p>
+                <p className="text-xs text-gray-500">Selected</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-red-50/60 border border-red-100 rounded-xl">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0"><XCircle size={18} /></div>
+              <div>
+                <p className="text-xl font-bold text-gray-900">{isLoading ? "—" : pipeline?.rejected ?? 0}</p>
+                <p className="text-xs text-gray-500">Rejected</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Applications */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-semibold text-gray-900">Recent Applications</h3>
+          </div>
+
+          {isLoading ? (
+            <div className="py-8 text-center">
+              <Loader2 size={22} className="mx-auto animate-spin text-blue-600" />
+            </div>
+          ) : recentApplications.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4">No applications submitted yet.</p>
+          ) : (
             <div className="space-y-1">
-              {mockRecentApplications.slice(0, 4).map((app, i) => (
-                <div key={i} className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-lg hover:bg-gray-50 transition-colors">
+              {recentApplications.map((app) => (
+                <div key={app.id} className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{app.student}</p>
-                    <p className="text-xs text-gray-400 truncate">{app.job} · {app.company}</p>
+                    <p className="text-sm font-medium text-gray-800 truncate">{app.student_name}</p>
+                    <p className="text-xs text-gray-400 truncate flex items-center gap-1">
+                      <Building2 size={11} className="shrink-0" /> {app.job_title} · {app.company_name}
+                    </p>
                   </div>
-                  <StatusBadge status={app.status} />
+                  <span className="text-xs text-gray-400 shrink-0 ml-3">
+                    {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : "Recently"}
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold text-gray-900">Upcoming Interviews</h3>
-              <span className="text-xs text-gray-400">{mockUpcomingInterviews.length} scheduled</span>
-            </div>
-            <div className="space-y-1">
-              {mockUpcomingInterviews.map((iv, i) => (
-                <div key={i} className="flex items-center gap-4 py-2.5 px-2 -mx-2 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="w-11 h-11 rounded-xl bg-blue-50 flex flex-col items-center justify-center shrink-0">
-                    <span className="text-[10px] text-blue-500 font-medium">{iv.date.split(" ")[0]}</span>
-                    <span className="text-base font-bold text-blue-600 leading-none">{iv.date.split(" ")[1]}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{iv.student}</p>
-                    <p className="text-xs text-gray-400 truncate">{iv.role} · {iv.company}</p>
-                  </div>
-                  <p className="text-xs text-gray-500 flex items-center gap-1 shrink-0">
-                    <Clock size={12} /> {iv.time}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

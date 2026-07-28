@@ -5,13 +5,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Database,
-  Users,
   Briefcase,
-  FileText,
+  Star,
   LogOut,
   ChevronLeft,
   ChevronRight,
-  FileEdit,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -22,9 +20,8 @@ import { toast } from 'sonner';
 const navItems = [
   { label: 'Placement Records', icon: Database, href: '/dashboard/records' },
   { label: 'Dashboard Overview', icon: LayoutDashboard, href: '/dashboard' },
-  { label: 'Students', icon: Users, href: '/dashboard/students' },
   { label: 'Jobs', icon: Briefcase, href: '/dashboard/jobs' },
-  { label: 'Applications', icon: FileText, href: '/dashboard/applications' },
+  { label: 'Success Stories', icon: Star, href: '/dashboard/success-stories' },
 ];
 
 export default function Sidebar() {
@@ -52,7 +49,6 @@ export default function Sidebar() {
         {!collapsed && (
           <div>
             <p className="text-sm font-bold text-gray-900 leading-tight">VPMS Admin</p>
-            <p className="text-[10px] text-blue-600 font-semibold leading-tight">Supabase Connected</p>
           </div>
         )}
       </div>

@@ -2,6 +2,55 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { PlacementRecord, PlacementRecordInsert, PlacementRecordUpdate } from '@/lib/supabase/types';
+import { ensureStudentLinkedByEmail } from '@/app/actions/students';
+
+// `age` and `batch_completion_year` are integer columns in the DB, but data coming in
+// (CSV rows, manual entry) can be messy — e.g. "December 2025" instead of a bare year.
+// Pull out the numeric value here so a bad value never reaches Postgres as raw text.
+function toSafeInteger(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : null;
+  const match = String(value).match(/\d+/);
+  if (!match) return null;
+  const n = Number(match[0]);
+  return Number.isFinite(n) ? n : null;
+}
+
+function sanitizeIntegerFields<T extends Partial<PlacementRecordInsert>>(record: T): T {
+  return {
+    ...record,
+    age: 'age' in record ? toSafeInteger(record.age) : record.age,
+    batch_completion_year: 'batch_completion_year' in record ? toSafeInteger(record.batch_completion_year) : record.batch_completion_year,
+  };
+}
+
+// The same person can arrive through more than one path — self-signup via the student
+// portal, a manual entry, or a CSV row — all keyed by the same email. Rather than ever
+// inserting a second row for an email that's already here, this updates the existing
+// row in place so the candidate only ever shows up once in Placement Records.
+async function upsertPlacementRecordByEmail(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  record: PlacementRecordInsert
+): Promise<{ data?: PlacementRecord; error?: string }> {
+  const { data: existing } = await (supabase.from('placement_records') as any).select('id').eq('email', record.email).maybeSingle();
+
+  if (existing) {
+    const { data, error } = await (supabase.from('placement_records') as any)
+      .update({ ...record, updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+      .select()
+      .single();
+    if (error) return { error: error.message };
+    return { data: data as PlacementRecord };
+  }
+
+  const { data, error } = await (supabase.from('placement_records') as any)
+    .insert({ ...record, created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .select()
+    .single();
+  if (error) return { error: error.message };
+  return { data: data as PlacementRecord };
+}
 
 export interface RecordFilters {
   search?: string;
@@ -91,27 +140,33 @@ export async function createPlacementRecord(recordData: PlacementRecordInsert): 
     }
 
     const supabase = createServerSupabaseClient();
-    const { data, error } = await (supabase.from('placement_records') as any)
-      .insert({
-        ...recordData,
-        source: recordData.source || 'manual',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    const { data, error } = await upsertPlacementRecordByEmail(supabase, {
+      ...sanitizeIntegerFields(recordData),
+      source: recordData.source || 'manual',
+    });
 
-    if (error) {
-      console.error('Error inserting record:', error);
-      if (error.code === '23505') {
-        return { success: false, error: 'A record with this email or contact number already exists.' };
-      }
-      return { success: false, error: error.message };
+    if (error || !data) {
+      console.error('Error saving record:', error);
+      return { success: false, error };
     }
 
-    return { success: true, data: data as PlacementRecord };
+    await ensureStudentLinkedByEmail(data);
+
+    return { success: true, data };
   } catch (err: any) {
     return { success: false, error: err.message || 'An error occurred while creating record.' };
+  }
+}
+
+export async function fetchPlacementRecordByEmail(email: string): Promise<{ data?: PlacementRecord; error?: string }> {
+  try {
+    if (!email) return {};
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await (supabase.from('placement_records') as any).select('*').eq('email', email).maybeSingle();
+    if (error) return { error: error.message };
+    return { data: (data as PlacementRecord) || undefined };
+  } catch (err: any) {
+    return { error: err.message || 'Failed to fetch record.' };
   }
 }
 
@@ -120,7 +175,7 @@ export async function updatePlacementRecord(id: string, recordData: PlacementRec
     const supabase = createServerSupabaseClient();
     const { data, error } = await (supabase.from('placement_records') as any)
       .update({
-        ...recordData,
+        ...sanitizeIntegerFields(recordData),
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -170,39 +225,29 @@ export async function bulkInsertPlacementRecords(
     const errors: { rowIndex: number; recordName: string; reason: string }[] = [];
     let insertedCount = 0;
 
-    const batchSize = 50;
-    for (let i = 0; i < records.length; i += batchSize) {
-      const chunk = records.slice(i, i + batchSize).map(r => ({
-        ...r,
-        source: 'csv_upload',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
+    // Upsert one row at a time (by email) rather than a blind batch insert, so a CSV
+    // row for someone already in the system (e.g. a prior portal signup or an earlier
+    // import) updates that existing record instead of creating a duplicate.
+    const concurrency = 10;
+    for (let i = 0; i < records.length; i += concurrency) {
+      const batch = records.slice(i, i + concurrency);
+      const results = await Promise.all(
+        batch.map((r) => upsertPlacementRecordByEmail(supabase, { ...sanitizeIntegerFields(r), source: 'csv_upload' }))
+      );
 
-      const { data, error } = await (supabase.from('placement_records') as any)
-        .insert(chunk)
-        .select();
-
-      if (error) {
-        console.warn(`Batch insert failed for chunk starting at index ${i}, falling back to row-by-row insertion:`, error.message);
-        for (let j = 0; j < chunk.length; j++) {
-          const singleRecord = chunk[j];
-          const globalIdx = i + j + 1;
-          const { error: singleError } = await (supabase.from('placement_records') as any)
-            .insert(singleRecord);
-
-          if (singleError) {
-            errors.push({
-              rowIndex: globalIdx,
-              recordName: singleRecord.full_name || `Row ${globalIdx}`,
-              reason: singleError.message,
-            });
-          } else {
-            insertedCount++;
-          }
+      for (let j = 0; j < results.length; j++) {
+        const globalIdx = i + j + 1;
+        const { data, error } = results[j];
+        if (error || !data) {
+          errors.push({
+            rowIndex: globalIdx,
+            recordName: batch[j].full_name || `Row ${globalIdx}`,
+            reason: error || 'Unknown error',
+          });
+        } else {
+          insertedCount++;
+          await ensureStudentLinkedByEmail(data);
         }
-      } else {
-        insertedCount += data ? data.length : chunk.length;
       }
     }
 

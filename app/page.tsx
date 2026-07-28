@@ -5,17 +5,16 @@ import {
   GraduationCap,
   Briefcase,
   TrendingUp,
-  Users,
   ArrowRight,
   ShieldCheck,
   Heart,
-  FileText,
   FileEdit,
   Database,
   Search,
   Upload,
 } from "lucide-react";
 import Image from "next/image";
+import { SuccessStoriesCarousel } from "@/components/home/SuccessStoriesCarousel";
 
 export default function LandingPage() {
   return (
@@ -29,21 +28,6 @@ export default function LandingPage() {
               <p className="font-bold text-gray-900 leading-tight">Vidya VPMS</p>
               <p className="text-xs text-blue-600 font-semibold leading-tight">Placement Management System</p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs font-bold">
-            <Link
-              href="/portal/jobs"
-              className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors border border-blue-100 flex items-center gap-1.5"
-            >
-              <GraduationCap size={16} /> Student Portal
-            </Link>
-            <Link
-              href="/login"
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-xs flex items-center gap-1.5"
-            >
-              <ShieldCheck size={16} /> Admin Portal
-            </Link>
           </div>
         </div>
       </nav>
@@ -59,7 +43,7 @@ export default function LandingPage() {
               One Unified System — <span className="text-blue-600">Dual Portals</span> for Students & Admins
             </h1>
             <p className="text-base text-gray-500 max-w-2xl mx-auto leading-relaxed">
-              Empowering students to find jobs, apply, and build single-page resumes, while providing admins with a complete Supabase-backed placement records management system.
+              Empowering students to find jobs, apply, and build single-page resumes, while providing admins with a complete placement records management system.
             </p>
           </div>
 
@@ -118,13 +102,13 @@ export default function LandingPage() {
                     Admin Management Panel
                   </h2>
                   <p className="text-xs text-gray-500 leading-relaxed">
-                    Full Supabase-backed admin system to manage placement records, run bulk CSV imports with column mapping, and track placement metrics.
+                    Full admin system to manage placement records, run bulk CSV imports with column mapping, and track placement metrics.
                   </p>
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-gray-100">
                   <div className="flex items-center gap-2 text-xs text-gray-700 font-medium">
-                    <Database size={14} className="text-gray-800" /> Supabase Postgres Database CRUD & Auth
+                    <Database size={14} className="text-gray-800" /> Secure Database CRUD & Auth
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-700 font-medium">
                     <Upload size={14} className="text-gray-800" /> CSV Bulk Upload with Interactive Header Mapping
@@ -146,14 +130,12 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <SuccessStoriesCarousel />
+
       {/* Footer */}
       <footer className="bg-gray-50 border-t border-gray-100 py-6 text-center text-xs text-gray-500">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-6">
           <p>© 2026 Vidya Placement Management System (VPMS). All rights reserved.</p>
-          <div className="flex items-center gap-4 font-semibold text-gray-600">
-            <Link href="/portal/jobs" className="hover:text-blue-600">Student Portal</Link>
-            <Link href="/login" className="hover:text-blue-600">Admin Login</Link>
-          </div>
         </div>
       </footer>
     </div>

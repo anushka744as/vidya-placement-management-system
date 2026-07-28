@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StudentLayout } from '@/components/portal/StudentLayout';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { fetchJobById, applyForJob, fetchStudentApplications, fetchResumeProfile } from '@/app/actions/portal';
-import { Job } from '@/lib/supabase/portal-types';
+import { fetchJobById, applyForJob, confirmJobApplication, fetchStudentApplications, fetchResumeProfile } from '@/app/actions/portal';
+import { Job, JobApplication } from '@/lib/supabase/portal-types';
+import { formatSalary } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -15,13 +16,12 @@ import {
   DollarSign,
   Briefcase,
   CheckCircle2,
-  Calendar,
-  Sparkles,
   FileText,
   Loader2,
   AlertCircle,
-  Clock,
   GraduationCap,
+  ExternalLink,
+  HelpCircle,
 } from 'lucide-react';
 
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,8 +32,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
-  const [hasApplied, setHasApplied] = useState(false);
+  const [application, setApplication] = useState<JobApplication | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [showResumeNudgeModal, setShowResumeNudgeModal] = useState(false);
+
+  const hasApplied = !!application;
 
   useEffect(() => {
     async function loadJobDetails() {
@@ -51,7 +54,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           const appsRes = await fetchStudentApplications(user.id);
           const matched = appsRes.data.find((a) => a.job_id === resolvedParams.id);
           if (matched) {
-            setHasApplied(true);
+            setApplication(matched);
           }
         }
       } catch {
@@ -65,19 +68,29 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   }, [resolvedParams.id, user?.id]);
 
   const handleApplyClick = async () => {
-    const studentUserId = user?.id || 'demo-student-id';
+    if (!user?.id) {
+      toast.error('Please sign in to apply for this job.');
+      router.push('/portal/login');
+      return;
+    }
+
     setApplying(true);
 
     try {
       // 1. Submit job application
-      const res = await applyForJob(resolvedParams.id, studentUserId);
+      const res = await applyForJob(resolvedParams.id, user.id, { externalLinkOpened: !!job?.external_link });
 
       if (res.success) {
-        setHasApplied(true);
+        if (res.data) setApplication(res.data);
         toast.success(`Application submitted for "${job?.title}"!`);
 
-        // 2. Check if student has a resume profile setup
-        const resumeRes = await fetchResumeProfile(studentUserId);
+        // 2. Redirect to the original listing on the company's site, if one was provided
+        if (job?.external_link) {
+          window.open(job.external_link, '_blank', 'noopener,noreferrer');
+        }
+
+        // 3. Check if student has a resume profile setup
+        const resumeRes = await fetchResumeProfile(user.id);
         if (!resumeRes.data || !resumeRes.data.full_name) {
           // Gently nudge toward resume builder
           setShowResumeNudgeModal(true);
@@ -89,6 +102,22 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       toast.error(err.message || 'Application failed');
     } finally {
       setApplying(false);
+    }
+  };
+
+  const handleConfirmApplied = async () => {
+    if (!application) return;
+    setConfirming(true);
+    try {
+      const res = await confirmJobApplication(application.id);
+      if (res.success && res.data) {
+        setApplication(res.data);
+        toast.success('Thanks for confirming! The placement team can now see this application is complete.');
+      } else {
+        toast.error(res.error || 'Could not confirm application.');
+      }
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -172,36 +201,82 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   <MapPin size={16} className="text-gray-400" /> {job.location || `${job.city}, ${job.zone}`}
                 </span>
                 <span className="font-bold text-green-700 flex items-center gap-1.5">
-                  <DollarSign size={16} className="text-green-600" /> {job.salary_range}
+                  <DollarSign size={16} className="text-green-600" /> {formatSalary(job.salary_range)}
                 </span>
               </div>
             </div>
 
             {/* Apply Action Button */}
             <div className="shrink-0">
-              {hasApplied ? (
+              {hasApplied && application?.status === 'Applied' ? (
                 <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-50 border border-green-200 text-green-700 font-bold rounded-2xl text-sm shadow-2xs">
                   <CheckCircle2 size={18} /> Applied ✓
                 </div>
+              ) : hasApplied ? (
+                <div className="inline-flex items-center gap-2 px-6 py-3 bg-amber-50 border border-amber-200 text-amber-700 font-bold rounded-2xl text-sm shadow-2xs">
+                  <HelpCircle size={18} /> Awaiting Confirmation
+                </div>
               ) : (
-                <button
-                  onClick={handleApplyClick}
-                  disabled={applying || job.status === 'Closed'}
-                  className="w-full md:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {applying ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" /> Submitting Application...
-                    </>
-                  ) : (
-                    <>
-                      <Briefcase size={18} /> Apply for Position
-                    </>
+                <div className="flex flex-col items-end gap-1.5">
+                  <button
+                    onClick={handleApplyClick}
+                    disabled={applying || job.status === 'Closed'}
+                    className="w-full md:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {applying ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" /> Submitting Application...
+                      </>
+                    ) : job.external_link ? (
+                      <>
+                        <ExternalLink size={18} /> Apply for Position
+                      </>
+                    ) : (
+                      <>
+                        <Briefcase size={18} /> Apply for Position
+                      </>
+                    )}
+                  </button>
+                  {job.external_link && (
+                    <p className="text-[10px] text-gray-400 text-right max-w-[220px]">You'll be redirected to the company's original listing to finish applying.</p>
                   )}
-                </button>
+                </div>
               )}
             </div>
           </div>
+
+          {/* Self-Reported External Application Confirmation */}
+          {hasApplied && job.external_link && application?.status !== 'Applied' && (
+            <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+              <div className="flex items-start gap-2.5 text-xs text-amber-800">
+                <HelpCircle size={16} className="shrink-0 mt-0.5" />
+                <span>
+                  We logged that you opened {job.company_name}'s application link, but this doesn't count as applied yet. <span className="font-bold">Did you finish applying there?</span> Confirming is what tells the placement team your application is actually complete.
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleConfirmApplied}
+                  disabled={confirming}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {confirming ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Yes, I've Applied
+                </button>
+                <button
+                  onClick={() => window.open(job.external_link, '_blank', 'noopener,noreferrer')}
+                  className="px-4 py-2 bg-white border border-amber-300 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all flex items-center gap-2"
+                >
+                  <ExternalLink size={14} /> Reopen Application Link
+                </button>
+              </div>
+            </div>
+          )}
+          {hasApplied && job.external_link && application?.status === 'Applied' && application?.confirmed_applied_at && (
+            <div className="flex items-center gap-2.5 p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700">
+              <CheckCircle2 size={16} className="shrink-0" />
+              <span>You confirmed on {new Date(application.confirmed_applied_at).toLocaleDateString()} that you completed this application on {job.company_name}'s site.</span>
+            </div>
+          )}
 
           {/* Quick Info Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50/80 p-4 rounded-2xl border border-gray-100 text-xs">
@@ -210,8 +285,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <p className="font-bold text-gray-800 mt-0.5">{job.zone}</p>
             </div>
             <div>
-              <p className="text-gray-400 font-semibold uppercase text-[10px]">City / Centre</p>
-              <p className="font-bold text-gray-800 mt-0.5">{job.city} ({job.centre})</p>
+              <p className="text-gray-400 font-semibold uppercase text-[10px]">City</p>
+              <p className="font-bold text-gray-800 mt-0.5">{job.city}</p>
             </div>
             <div>
               <p className="text-gray-400 font-semibold uppercase text-[10px]">Employment Type</p>

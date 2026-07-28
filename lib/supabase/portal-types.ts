@@ -9,17 +9,19 @@ export interface Job {
   job_type: JobType;
   zone: string;
   city: string;
-  centre: string;
+  centre?: string;
   location: string;
   salary_range: string;
   description: string;
   requirements: string[] | string;
   status: JobStatus;
+  external_link?: string;
   posted_by?: string | null;
   created_at?: string;
 }
 
 export type ApplicationStatus =
+  | 'Link Opened'
   | 'Applied'
   | 'Shortlisted'
   | 'Interview Scheduled'
@@ -35,13 +37,19 @@ export interface JobApplication {
   user_id: string;
   status: ApplicationStatus;
   interview_count?: number;
+  interview_date?: string | null;
+  link_opened_at?: string | null;
+  confirmed_applied_at?: string | null;
   joining_date?: string | null;
+  probation_end_date?: string | null;
   designation?: string | null;
   salary_offered?: string | null;
   proof_document_url?: string | null;
   retention_status?: string | null;
   last_follow_up_date?: string | null;
   admin_notes?: string | null;
+  self_reported_status?: ApplicationStatus | null;
+  self_reported_at?: string | null;
   applied_at: string;
   updated_at?: string;
   job?: Job;

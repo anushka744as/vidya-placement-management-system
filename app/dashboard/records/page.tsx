@@ -24,9 +24,9 @@ export default function RecordsManagementPage() {
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Database className="text-blue-600" size={26} /> Placement Records Management
             </h1>
-            <p className="text-xs text-gray-400 mt-1">
-              Admin management system powered by Supabase. Search, filter, add candidates, and run CSV imports.
-            </p>
+            {/* <p className="text-xs text-gray-400 mt-1">
+              Admin management system. Search, filter, add candidates, and run CSV imports.
+            </p> */}
           </div>
 
           {/* Navigation Pill Switcher */}

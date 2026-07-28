@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, GraduationCap, Briefcase, TrendingUp, Heart, Loader2, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, GraduationCap, Briefcase, FileEdit, Heart, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,13 +15,33 @@ function getPasswordError(password: string): string | null {
   return null;
 }
 
-export default function LoginPage() {
+export default function StudentLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
+
+  const handleGoogleAuth = async () => {
+    setGoogleLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/portal/jobs`,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+        setGoogleLoading(false);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Could not continue with Google.');
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +62,7 @@ export default function LoginPage() {
 
     try {
       if (isSignUpMode) {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
         });
@@ -51,11 +70,11 @@ export default function LoginPage() {
         if (error) {
           toast.error(error.message);
         } else {
-          toast.success('Account registered! Please sign in or check your email.');
+          toast.success('Account created! Check your email to confirm your account before signing in.', { duration: 6000 });
           setIsSignUpMode(false);
         }
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
@@ -64,7 +83,7 @@ export default function LoginPage() {
           toast.error(error.message || 'Invalid email or password');
         } else {
           toast.success('Signed in successfully!');
-          router.push('/dashboard/records');
+          router.push('/portal/jobs');
         }
       }
     } catch (err: any) {
@@ -77,9 +96,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Banner */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/3 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-500/20 rounded-full translate-y-1/3 -translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/20 rounded-full translate-y-1/3 -translate-x-1/3" />
         <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-400/20 rounded-full" />
 
         <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
@@ -87,23 +106,26 @@ export default function LoginPage() {
             <Image src="/images/image.png" alt="Vidya" width={44} height={44} className="rounded-lg bg-white p-1" />
             <div>
               <p className="font-bold text-lg leading-tight">Vidya</p>
-              <p className="text-xs text-blue-200 leading-tight">Placement Management System</p>
+              <p className="text-xs text-blue-200 leading-tight">Student Placement Portal</p>
             </div>
           </div>
 
           <div className="max-w-md">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 text-blue-100 text-xs font-semibold rounded-full backdrop-blur-sm mb-4">
+              <Sparkles size={14} /> Certified Student Placement Portal
+            </span>
             <h1 className="text-4xl font-bold mb-4 leading-tight">
-              Empowering careers, one student at a time.
+              Find your next opportunity.
             </h1>
             <p className="text-blue-100 text-lg mb-10 leading-relaxed">
-              Sign in to manage candidate records, run bulk CSV imports, track employment stats, and connect skilled students with employers.
+              Sign in to browse open job listings, track your applications in real time, and build your resume.
             </p>
 
             <div className="space-y-4">
               {[
-                { icon: GraduationCap, text: "Track placement candidates across 5 Zones & 15+ Centers" },
-                { icon: Briefcase, text: "Full-Time, Part-Time & Internship Role Tracking" },
-                { icon: ShieldCheck, text: "Role-based Database Row-Level Security" },
+                { icon: Briefcase, text: 'Browse verified job listings across every zone & centre' },
+                { icon: GraduationCap, text: 'Track application status: shortlisted, interview, selected' },
+                { icon: FileEdit, text: 'Build a single-page resume with PDF export' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm">
@@ -129,18 +151,46 @@ export default function LoginPage() {
             <Image src="/images/image.png" alt="Vidya" width={40} height={40} className="rounded-lg border p-1" />
             <div>
               <p className="font-bold text-gray-900 leading-tight">Vidya</p>
-              <p className="text-xs text-gray-400 leading-tight">Placement Management</p>
+              <p className="text-xs text-gray-400 leading-tight">Student Placement Portal</p>
             </div>
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {isSignUpMode ? 'Create Admin Account' : 'Welcome back'}
+            {isSignUpMode ? 'Create your account' : 'Welcome back'}
           </h2>
           <p className="text-gray-500 mb-8 text-sm">
             {isSignUpMode
-              ? 'Register new admin credentials.'
-              : 'Sign in to your VPMS Admin Portal to manage placement records.'}
+              ? 'Register to apply for jobs and track your placement status.'
+              : 'Sign in to browse jobs, track applications, and build your resume.'}
           </p>
+
+          <button
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={googleLoading}
+            className="w-full py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 mb-6"
+          >
+            {googleLoading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.89c2.28-2.1 3.57-5.2 3.57-8.84z" />
+                <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.89-3.02c-1.08.72-2.46 1.15-4.06 1.15-3.12 0-5.77-2.11-6.72-4.94H1.27v3.11C3.25 21.3 7.31 24 12 24z" />
+                <path fill="#FBBC05" d="M5.28 14.29A7.2 7.2 0 0 1 4.9 12c0-.79.14-1.57.38-2.29V6.6H1.27A11.98 11.98 0 0 0 0 12c0 1.93.46 3.76 1.27 5.4z" />
+                <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.6l4.01 3.11C6.23 6.88 8.88 4.77 12 4.77z" />
+              </svg>
+            )}
+            Continue with Google
+          </button>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-100" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-3 bg-white text-gray-400">or use your email</span>
+            </div>
+          </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Email */}
@@ -154,7 +204,7 @@ export default function LoginPage() {
                   autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@vidya.org"
+                  placeholder="you@email.com"
                   required
                   className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
                 />
@@ -163,9 +213,7 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-gray-700">Password</label>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -204,7 +252,7 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  {isSignUpMode ? 'Register Admin Account' : 'Sign In'} <ArrowRight size={18} />
+                  {isSignUpMode ? 'Create Account' : 'Sign In'} <ArrowRight size={18} />
                 </>
               )}
             </button>
@@ -218,8 +266,8 @@ export default function LoginPage() {
                 className="text-xs text-blue-600 hover:underline font-medium"
               >
                 {isSignUpMode
-                  ? 'Already have an admin account? Sign In'
-                  : "Need a new admin account? Register here"}
+                  ? 'Already have an account? Sign In'
+                  : "New here? Create an account"}
               </button>
             </div>
           </div>

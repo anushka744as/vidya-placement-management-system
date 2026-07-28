@@ -53,7 +53,6 @@ export function NewsletterFooter() {
             <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300">Student Services</h4>
             <ul className="space-y-2 text-xs text-gray-400">
               <li><a href="/portal/jobs" className="hover:text-blue-400 transition-colors">Browse Open Job Listings</a></li>
-              <li><a href="/portal/applications" className="hover:text-blue-400 transition-colors">Track My Applications</a></li>
               <li><a href="/portal/resume" className="hover:text-blue-400 transition-colors">Build Single-Page Resume</a></li>
               <li><a href="/login" className="hover:text-blue-400 transition-colors">Admin Portal Sign In</a></li>
             </ul>

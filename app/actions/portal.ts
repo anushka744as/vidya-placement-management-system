@@ -1,140 +1,12 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { Job, JobApplication, ResumeProfile } from '@/lib/supabase/portal-types';
-
-// Seeded sample jobs fallback if Supabase jobs table has no rows yet
-const SEEDED_JOBS: Job[] = [
-  {
-    id: 'seed-job-1',
-    title: 'Retail Sales Executive',
-    company_name: 'Reliance Retail',
-    sector: 'Retail & E-commerce',
-    job_type: 'Full-Time',
-    zone: 'North Zone',
-    city: 'Delhi',
-    centre: 'Delhi (Munirka)',
-    location: 'Munirka, New Delhi',
-    salary_range: '₹18,000 – ₹24,000 / month',
-    description: 'We are seeking energetic Retail Sales Executives to engage customers, demonstrate products, manage inventory displays, and achieve daily sales targets at Reliance Retail outlets.',
-    requirements: [
-      '12th Pass or Graduate',
-      'Good verbal communication skills in Hindi & basic English',
-      'Customer-first attitude and teamwork',
-      'Basic computer or POS terminal knowledge'
-    ],
-    status: 'Open',
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: 'seed-job-2',
-    title: 'Customer Support Associate',
-    company_name: 'Concentrix India',
-    sector: 'BPO & Customer Care',
-    job_type: 'Full-Time',
-    zone: 'North Zone',
-    city: 'Gurugram',
-    centre: 'Delhi (Gurugram)',
-    location: 'Cyber City, Gurugram',
-    salary_range: '₹22,000 – ₹28,000 / month',
-    description: 'Join Concentrix customer support team to resolve inbound queries via phone and chat. Complete 4-week paid training program provided upon joining.',
-    requirements: [
-      '12th Pass or Any Graduate',
-      'Fluent English & Hindi communication',
-      'Willingness to work flexible shift rotations',
-      'Typing speed > 30 WPM'
-    ],
-    status: 'Open',
-    created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
-  },
-  {
-    id: 'seed-job-3',
-    title: 'Junior Web & UI Developer',
-    company_name: 'TechSpark Solutions',
-    sector: 'IT & Software',
-    job_type: 'Full-Time',
-    zone: 'South Zone',
-    city: 'Bengaluru',
-    centre: 'Bengaluru (Whitefield)',
-    location: 'Whitefield, Bengaluru',
-    salary_range: '₹3.5 LPA – ₹4.8 LPA',
-    description: 'Build modern user interfaces with HTML, CSS, JavaScript, and React. Work alongside senior frontend engineers on client web applications.',
-    requirements: [
-      'Certification or diploma in Full Stack / Web Development',
-      'Hands-on knowledge of HTML5, CSS3, JavaScript ES6, and Git',
-      'Understanding of responsive design principles',
-      'Problem-solving mindset'
-    ],
-    status: 'Open',
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: 'seed-job-4',
-    title: 'Data Entry & Tally Associate',
-    company_name: 'HDFC Financial Services',
-    sector: 'Banking & Finance',
-    job_type: 'Full-Time',
-    zone: 'West Zone',
-    city: 'Mumbai',
-    centre: 'Mumbai (Thane)',
-    location: 'Thane West, Mumbai',
-    salary_range: '₹16,000 – ₹20,000 / month',
-    description: 'Perform digital record keeping, voucher entry in Tally ERP 9, and verify customer KYC documentation for banking workflows.',
-    requirements: [
-      'Graduate (B.Com / B.A / B.Sc)',
-      'Knowledge of Tally ERP 9 and MS Excel (VLOOKUP, Pivot Tables)',
-      'High accuracy in numerical data entry'
-    ],
-    status: 'Open',
-    created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-  },
-  {
-    id: 'seed-job-5',
-    title: 'Digital Marketing Intern',
-    company_name: 'MediaCraft Digital',
-    sector: 'Digital Marketing & Media',
-    job_type: 'Internship',
-    zone: 'South Zone',
-    city: 'Hyderabad',
-    centre: 'Hyderabad (Hitech)',
-    location: 'Hitech City, Hyderabad',
-    salary_range: '₹12,000 / month stipend',
-    description: '6-month paid internship focused on social media content creation, SEO keyword research, and running Meta & Google ad campaigns.',
-    requirements: [
-      'Certification in Digital Marketing',
-      'Basic graphic design skills (Canva / Photoshop)',
-      'Good written English copy skills'
-    ],
-    status: 'Open',
-    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-  },
-  {
-    id: 'seed-job-6',
-    title: 'Hospitality & Guest Desk Trainee',
-    company_name: 'Taj Hotels & Resorts',
-    sector: 'Hospitality & Tourism',
-    job_type: 'Part-Time',
-    zone: 'East Zone',
-    city: 'Kolkata',
-    centre: 'Kolkata (Salt Lake)',
-    location: 'Salt Lake Sector 5, Kolkata',
-    salary_range: '₹15,000 / month',
-    description: 'Assist guest check-ins, manage front desk reservations, and coordinate guest queries at world-class luxury hotel desk.',
-    requirements: [
-      'Diploma in Hospitality or Graduate',
-      'Pleasing personality and strong interpersonal skills',
-      'Fluency in Bengali, English & Hindi'
-    ],
-    status: 'Open',
-    created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
-  }
-];
+import { ApplicationStatus, Job, JobApplication, ResumeProfile } from '@/lib/supabase/portal-types';
 
 export interface FetchJobsFilters {
   search?: string;
   zone?: string;
   city?: string;
-  centre?: string;
   sector?: string;
   job_type?: string;
 }
@@ -155,9 +27,6 @@ export async function fetchOpenJobs(filters: FetchJobsFilters = {}): Promise<{ d
     if (filters.city && filters.city !== 'all') {
       query = query.eq('city', filters.city);
     }
-    if (filters.centre && filters.centre !== 'all') {
-      query = query.eq('centre', filters.centre);
-    }
     if (filters.sector && filters.sector !== 'all') {
       query = query.eq('sector', filters.sector);
     }
@@ -169,25 +38,99 @@ export async function fetchOpenJobs(filters: FetchJobsFilters = {}): Promise<{ d
 
     const { data, error } = await query;
 
-    if (error || !data || data.length === 0) {
-      // Filter seeded jobs as fallback
-      let filtered = [...SEEDED_JOBS];
-      if (filters.search && filters.search.trim() !== '') {
-        const s = filters.search.toLowerCase();
-        filtered = filtered.filter(j => j.title.toLowerCase().includes(s) || j.company_name.toLowerCase().includes(s));
-      }
-      if (filters.zone && filters.zone !== 'all') filtered = filtered.filter(j => j.zone === filters.zone);
-      if (filters.city && filters.city !== 'all') filtered = filtered.filter(j => j.city === filters.city);
-      if (filters.centre && filters.centre !== 'all') filtered = filtered.filter(j => j.centre === filters.centre);
-      if (filters.sector && filters.sector !== 'all') filtered = filtered.filter(j => j.sector === filters.sector);
-      if (filters.job_type && filters.job_type !== 'all') filtered = filtered.filter(j => j.job_type === filters.job_type);
-
-      return { data: filtered };
+    if (error) {
+      return { data: [], error: error.message };
     }
 
-    return { data: data as Job[] };
+    return { data: (data as Job[]) || [] };
   } catch (err: any) {
-    return { data: SEEDED_JOBS };
+    return { data: [], error: err.message || 'Failed to load job postings.' };
+  }
+}
+
+export async function fetchAllJobsAdmin(): Promise<{ data: Job[]; error?: string }> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await (supabase.from('jobs') as any)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return { data: [], error: error.message };
+    }
+
+    return { data: (data as Job[]) || [] };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Failed to load job postings.' };
+  }
+}
+
+function normalizeJobRequirements(requirements: Job['requirements']): string {
+  return Array.isArray(requirements) ? requirements.join('\n') : requirements || '';
+}
+
+export async function createJob(jobData: Omit<Job, 'id' | 'created_at'>): Promise<{ success: boolean; data?: Job; error?: string }> {
+  try {
+    if (!jobData.title || !jobData.company_name) {
+      return { success: false, error: 'Job title and company name are required.' };
+    }
+
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await (supabase.from('jobs') as any)
+      .insert({
+        ...jobData,
+        requirements: normalizeJobRequirements(jobData.requirements),
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating job:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as Job };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'An error occurred while creating the job posting.' };
+  }
+}
+
+export async function updateJob(id: string, jobData: Omit<Job, 'id' | 'created_at'>): Promise<{ success: boolean; data?: Job; error?: string }> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await (supabase.from('jobs') as any)
+      .update({ ...jobData, requirements: normalizeJobRequirements(jobData.requirements) })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating job:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as Job };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'An error occurred while updating the job posting.' };
+  }
+}
+
+export async function deleteJob(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { error } = await (supabase.from('jobs') as any)
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting job:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'An error occurred while deleting the job posting.' };
   }
 }
 
@@ -200,41 +143,44 @@ export async function fetchJobById(id: string): Promise<{ data?: Job; error?: st
       .single();
 
     if (error || !data) {
-      const seeded = SEEDED_JOBS.find(j => j.id === id);
-      if (seeded) return { data: seeded };
       return { error: 'Job posting not found.' };
     }
 
     return { data: data as Job };
   } catch (err: any) {
-    const seeded = SEEDED_JOBS.find(j => j.id === id);
-    if (seeded) return { data: seeded };
     return { error: err.message || 'Failed to fetch job details.' };
   }
 }
 
-export async function applyForJob(jobId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+export async function applyForJob(jobId: string, userId: string, opts: { externalLinkOpened?: boolean } = {}): Promise<{ success: boolean; data?: JobApplication; error?: string }> {
   try {
     const supabase = createServerSupabaseClient();
 
     // Check if duplicate application exists
     const { data: existing } = await (supabase.from('job_applications') as any)
-      .select('id')
+      .select('*')
       .eq('job_id', jobId)
       .eq('user_id', userId)
       .maybeSingle();
 
     if (existing) {
-      return { success: false, error: 'You have already applied to this job.' };
+      return { success: false, error: 'You have already applied to this job.', data: existing as JobApplication };
     }
 
-    const { error } = await (supabase.from('job_applications') as any).insert({
-      job_id: jobId,
-      user_id: userId,
-      status: 'Applied',
-      applied_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
+    const now = new Date().toISOString();
+    const { data, error } = await (supabase.from('job_applications') as any)
+      .insert({
+        job_id: jobId,
+        user_id: userId,
+        // For external-link jobs we can't verify the application actually happened on the
+        // company's site, so it stays 'Link Opened' (not 'Applied') until the student self-confirms.
+        status: opts.externalLinkOpened ? 'Link Opened' : 'Applied',
+        applied_at: now,
+        updated_at: now,
+        link_opened_at: opts.externalLinkOpened ? now : null,
+      })
+      .select()
+      .single();
 
     if (error) {
       if (error.code === '23505') {
@@ -243,9 +189,28 @@ export async function applyForJob(jobId: string, userId: string): Promise<{ succ
       return { success: false, error: error.message };
     }
 
-    return { success: true };
+    return { success: true, data: data as JobApplication };
   } catch (err: any) {
     return { success: false, error: err.message || 'Application submission failed.' };
+  }
+}
+
+export async function confirmJobApplication(applicationId: string): Promise<{ success: boolean; data?: JobApplication; error?: string }> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await (supabase.from('job_applications') as any)
+      .update({ status: 'Applied', confirmed_applied_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', applicationId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as JobApplication };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Could not confirm application.' };
   }
 }
 
@@ -264,6 +229,244 @@ export async function fetchStudentApplications(userId: string): Promise<{ data: 
     return { data: (data as JobApplication[]) || [] };
   } catch (err: any) {
     return { data: [], error: err.message || 'Failed to load applications.' };
+  }
+}
+
+export interface RecentApplicationSummary {
+  id: string;
+  applied_at: string;
+  job_title: string;
+  company_name: string;
+  student_name: string;
+}
+
+export async function fetchRecentApplicationsAdmin(limit: number = 5): Promise<{ data: RecentApplicationSummary[]; error?: string }> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data: apps, error } = await (supabase.from('job_applications') as any)
+      .select('id, user_id, applied_at, job:jobs(title, company_name)')
+      .order('applied_at', { ascending: false })
+      .limit(limit);
+
+    if (error || !apps) {
+      return { data: [], error: error?.message };
+    }
+
+    const userIds = Array.from(new Set(apps.map((a: any) => a.user_id).filter(Boolean)));
+    const emailByUserId: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await (supabase.from('profiles') as any).select('id, email').in('id', userIds);
+      (profiles || []).forEach((p: any) => { emailByUserId[p.id] = p.email; });
+    }
+
+    const emails = Object.values(emailByUserId);
+    const nameByEmail: Record<string, string> = {};
+    if (emails.length > 0) {
+      const { data: students } = await (supabase.from('students') as any).select('email, full_name').in('email', emails);
+      (students || []).forEach((s: any) => { if (s.email && s.full_name) nameByEmail[s.email] = s.full_name; });
+    }
+
+    const result: RecentApplicationSummary[] = apps.map((a: any) => {
+      const email = emailByUserId[a.user_id];
+      return {
+        id: a.id,
+        applied_at: a.applied_at,
+        job_title: a.job?.title || 'Placement Application',
+        company_name: a.job?.company_name || 'Partner Employer',
+        student_name: (email && nameByEmail[email]) || email || 'Student',
+      };
+    });
+
+    return { data: result };
+  } catch (err: any) {
+    return { data: [], error: err.message || 'Failed to load recent applications.' };
+  }
+}
+
+export async function fetchApplicationsByEmail(email: string): Promise<{ data: JobApplication[]; linked: boolean; error?: string }> {
+  try {
+    if (!email) {
+      return { data: [], linked: false };
+    }
+
+    const supabase = createServerSupabaseClient();
+    const { data: profile, error: profileError } = await (supabase.from('profiles') as any)
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      return { data: [], linked: false };
+    }
+
+    const { data, error } = await (supabase.from('job_applications') as any)
+      .select('*, job:jobs(*)')
+      .eq('user_id', profile.id)
+      .order('applied_at', { ascending: false });
+
+    if (error) {
+      return { data: [], linked: true, error: error.message };
+    }
+
+    return { data: (data as JobApplication[]) || [], linked: true };
+  } catch (err: any) {
+    return { data: [], linked: false, error: err.message || 'Failed to load applications.' };
+  }
+}
+
+export interface ApplicationStatusUpdate {
+  status: ApplicationStatus;
+  interview_date?: string | null;
+  admin_notes?: string | null;
+  designation?: string | null;
+  salary_offered?: string | null;
+  joining_date?: string | null;
+  probation_end_date?: string | null;
+  retention_status?: string | null;
+  last_follow_up_date?: string | null;
+}
+
+async function syncStudentPlacementFromApplication(supabase: ReturnType<typeof createServerSupabaseClient>, app: any) {
+  if (app.status !== 'Selected' && app.status !== 'Joined') return;
+
+  try {
+    const [{ data: profile }, { data: job }] = await Promise.all([
+      (supabase.from('profiles') as any).select('email').eq('id', app.user_id).maybeSingle(),
+      (supabase.from('jobs') as any).select('company_name').eq('id', app.job_id).maybeSingle(),
+    ]);
+    if (!profile?.email) return;
+
+    const { data: student } = await (supabase.from('students') as any).select('id').eq('email', profile.email).maybeSingle();
+    if (!student) return;
+
+    await (supabase.from('students') as any)
+      .update({
+        status: 'Placed',
+        company_placed: job?.company_name,
+        join_date: app.joining_date,
+        placed_salary: app.salary_offered,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', student.id);
+  } catch (err) {
+    console.error('Could not sync student placement status:', err);
+  }
+}
+
+export async function updateApplicationStatus(applicationId: string, updates: ApplicationStatusUpdate): Promise<{ success: boolean; data?: JobApplication; error?: string }> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await (supabase.from('job_applications') as any)
+      .update({ ...updates, self_reported_status: null, self_reported_at: null, updated_at: new Date().toISOString() })
+      .eq('id', applicationId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating application status:', error);
+      return { success: false, error: error.message };
+    }
+
+    await syncStudentPlacementFromApplication(supabase, data);
+
+    return { success: true, data: data as JobApplication };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update application status.' };
+  }
+}
+
+const STUDENT_REPORTABLE_STATUSES: ApplicationStatus[] = ['Shortlisted', 'Interview Scheduled', 'Selected', 'Rejected'];
+
+export async function reportApplicationStatus(
+  applicationId: string,
+  status: ApplicationStatus,
+  interviewDate?: string | null
+): Promise<{ success: boolean; data?: JobApplication; error?: string }> {
+  try {
+    if (!STUDENT_REPORTABLE_STATUSES.includes(status)) {
+      return { success: false, error: 'Invalid status.' };
+    }
+
+    const supabase = createServerSupabaseClient();
+    const now = new Date().toISOString();
+    const update: Record<string, unknown> = {
+      status,
+      self_reported_status: status,
+      self_reported_at: now,
+      updated_at: now,
+    };
+    if (status === 'Interview Scheduled' && interviewDate) {
+      update.interview_date = interviewDate;
+    }
+
+    const { data, error } = await (supabase.from('job_applications') as any)
+      .update(update)
+      .eq('id', applicationId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error reporting application status:', error);
+      return { success: false, error: error.message };
+    }
+
+    await syncStudentPlacementFromApplication(supabase, data);
+
+    return { success: true, data: data as JobApplication };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Could not update your application status.' };
+  }
+}
+
+const APPLICATION_PROOF_BUCKET = 'student-documents';
+
+export async function uploadApplicationProof(applicationId: string, formData: FormData): Promise<{ success: boolean; data?: JobApplication; error?: string }> {
+  try {
+    const file = formData.get('file') as File | null;
+    if (!file || file.size === 0) {
+      return { success: false, error: 'No file selected.' };
+    }
+
+    const supabase = createServerSupabaseClient();
+    const path = `applications/${applicationId}/proof-${Date.now()}-${file.name}`;
+    const arrayBuffer = await file.arrayBuffer();
+    const { error: uploadError } = await supabase.storage.from(APPLICATION_PROOF_BUCKET).upload(path, arrayBuffer, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: true,
+    });
+
+    if (uploadError) {
+      return { success: false, error: `Failed to upload proof: ${uploadError.message}` };
+    }
+
+    const { data, error } = await (supabase.from('job_applications') as any)
+      .update({ proof_document_url: path, updated_at: new Date().toISOString() })
+      .eq('id', applicationId)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as JobApplication };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to upload proof document.' };
+  }
+}
+
+export async function getApplicationProofSignedUrl(path: string): Promise<{ url?: string; error?: string }> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await supabase.storage.from(APPLICATION_PROOF_BUCKET).createSignedUrl(path, 60 * 10);
+
+    if (error || !data) {
+      return { error: error?.message || 'Could not generate document link.' };
+    }
+
+    return { url: data.signedUrl };
+  } catch (err: any) {
+    return { error: err.message || 'Could not generate document link.' };
   }
 }
 

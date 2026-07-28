@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { StudentLayout } from '@/components/portal/StudentLayout';
 import { fetchOpenJobs } from '@/app/actions/portal';
 import { Job, JobType } from '@/lib/supabase/portal-types';
-import { ZONES, CENTRES } from '@/lib/constants';
+import { ZONES } from '@/lib/constants';
+import { formatSalary } from '@/lib/utils';
 import {
   Search,
   MapPin,
@@ -47,7 +48,6 @@ export default function StudentJobListingsPage() {
   const [search, setSearch] = useState('');
   const [selectedZone, setSelectedZone] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
-  const [selectedCentre, setSelectedCentre] = useState('all');
   const [selectedSector, setSelectedSector] = useState('all');
   const [selectedJobType, setSelectedJobType] = useState('all');
 
@@ -58,7 +58,6 @@ export default function StudentJobListingsPage() {
         search,
         zone: selectedZone,
         city: selectedCity,
-        centre: selectedCentre,
         sector: selectedSector,
         job_type: selectedJobType,
       });
@@ -68,28 +67,20 @@ export default function StudentJobListingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, selectedZone, selectedCity, selectedCentre, selectedSector, selectedJobType]);
+  }, [search, selectedZone, selectedCity, selectedSector, selectedJobType]);
 
   useEffect(() => {
     loadJobs();
   }, [loadJobs]);
 
-  // Handle Cascading Zone -> City -> Centre
+  // Handle Cascading Zone -> City
   const handleZoneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setSelectedZone(val);
     setSelectedCity('all');
-    setSelectedCentre('all');
-  };
-
-  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setSelectedCity(val);
-    setSelectedCentre('all');
   };
 
   const availableCities = selectedZone !== 'all' ? CITIES_BY_ZONE[selectedZone] || [] : Object.values(CITIES_BY_ZONE).flat();
-  const availableCentres = selectedZone !== 'all' ? CENTRES[selectedZone] || [] : Object.values(CENTRES).flat();
 
   return (
     <StudentLayout>
@@ -105,7 +96,7 @@ export default function StudentJobListingsPage() {
               Discover Open Career Opportunities
             </h1>
             <p className="text-blue-100 text-sm leading-relaxed">
-              Explore verified job postings matched to your Vidya skill certification. Filter by zone, city, centre, sector, and employment type.
+              Explore verified job postings matched to your Vidya skill certification. Filter by zone, city, sector, and employment type.
             </p>
           </div>
         </div>
@@ -127,7 +118,7 @@ export default function StudentJobListingsPage() {
           </div>
 
           {/* Cascading Filters Row */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-gray-100 text-xs">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-gray-100 text-xs">
             {/* 1. Zone */}
             <div>
               <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">1. Zone</label>
@@ -150,7 +141,7 @@ export default function StudentJobListingsPage() {
               <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">2. City</label>
               <select
                 value={selectedCity}
-                onChange={handleCityChange}
+                onChange={(e) => setSelectedCity(e.target.value)}
                 className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-100"
               >
                 <option value="all">All Cities</option>
@@ -162,26 +153,9 @@ export default function StudentJobListingsPage() {
               </select>
             </div>
 
-            {/* 3. Centre (Cascading) */}
+            {/* 3. Sector */}
             <div>
-              <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">3. Centre</label>
-              <select
-                value={selectedCentre}
-                onChange={(e) => setSelectedCentre(e.target.value)}
-                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="all">All Centres</option>
-                {availableCentres.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* 4. Sector */}
-            <div>
-              <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">4. Sector</label>
+              <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">3. Sector</label>
               <select
                 value={selectedSector}
                 onChange={(e) => setSelectedSector(e.target.value)}
@@ -196,9 +170,9 @@ export default function StudentJobListingsPage() {
               </select>
             </div>
 
-            {/* 5. Job Type */}
+            {/* 4. Job Type */}
             <div>
-              <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">5. Job Type</label>
+              <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">4. Job Type</label>
               <select
                 value={selectedJobType}
                 onChange={(e) => setSelectedJobType(e.target.value)}
@@ -278,7 +252,7 @@ export default function StudentJobListingsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <DollarSign size={14} className="text-green-600 shrink-0" />
-                      <span className="font-semibold text-green-700">{job.salary_range}</span>
+                      <span className="font-semibold text-green-700">{formatSalary(job.salary_range)}</span>
                     </div>
                   </div>
 

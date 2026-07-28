@@ -87,12 +87,15 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
         setCsvHeaders(headers);
         setRawRows(results.data as Record<string, any>[]);
 
-        // Auto-match CSV headers to DB fields based on aliases
+        // Auto-match CSV headers to DB fields based on aliases.
+        // Normalize away spaces/underscores/hyphens/case on BOTH sides so "Email ID",
+        // "email_id", "EmailID", and "Email-ID" all match the alias "emailid" alike.
+        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
         const initialMapping: Record<string, string> = {};
         FIELD_DEFINITIONS.forEach((field) => {
           const matchedHeader = headers.find((h) => {
-            const normalizedH = h.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
-            return field.aliases.some((alias) => alias.toLowerCase() === normalizedH);
+            const normalizedH = normalize(h);
+            return field.aliases.some((alias) => normalize(alias) === normalizedH);
           });
           if (matchedHeader) {
             initialMapping[field.key] = matchedHeader;
@@ -140,6 +143,25 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
         if (isNaN(numAge) || numAge < 15 || numAge > 85) {
           errors.push(`Invalid age "${mapped.age}" (must be number between 15 and 85)`);
         }
+      }
+
+      // 2b. Completion Year: the column may contain a combined value like "December 2025" —
+      // pull out just the 4-digit year rather than failing at the database's integer column.
+      if (mapped.batch_completion_year) {
+        const yearMatch = String(mapped.batch_completion_year).match(/\d{4}/);
+        const numYear = yearMatch ? Number(yearMatch[0]) : NaN;
+        if (!yearMatch || numYear < 1990 || numYear > new Date().getFullYear() + 5) {
+          errors.push(`Invalid completion year "${mapped.batch_completion_year}" (must contain a 4-digit year)`);
+          mapped.batch_completion_year = null;
+        } else {
+          mapped.batch_completion_year = numYear;
+        }
+      }
+
+      // 2c. Completion Month: strip any trailing/leading 4-digit year so a combined
+      // value like "December 2025" is stored as just "December".
+      if (mapped.batch_completion_month) {
+        mapped.batch_completion_month = String(mapped.batch_completion_month).replace(/\b\d{4}\b/g, '').trim();
       }
 
       // 3. Nature of Employment Enum check
@@ -363,7 +385,7 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <Table size={20} className="text-blue-600" /> Data Validation & Row Preview
               </h3>
-              <p className="text-xs text-gray-500 mt-1">Review rows before committing batch insert to Supabase.</p>
+              <p className="text-xs text-gray-500 mt-1">Review rows before saving them.</p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -442,7 +464,7 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
             >
               {isImporting ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" /> Batch Inserting into Supabase...
+                  <Loader2 size={16} className="animate-spin" /> Saving records...
                 </>
               ) : (
                 <>
@@ -461,7 +483,7 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
             <CheckCircle2 size={36} />
           </div>
           <h3 className="text-xl font-bold text-gray-900">CSV Import Completed</h3>
-          <p className="text-xs text-gray-500">Summary report of rows processed for Supabase table placement_records.</p>
+          <p className="text-xs text-gray-500">Summary report of rows processed.</p>
 
           <div className="grid grid-cols-2 max-w-md mx-auto gap-4 my-6">
             <div className="p-4 bg-green-50 border border-green-100 rounded-2xl">

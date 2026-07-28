@@ -27,6 +27,17 @@ export const COURSES = [
   'Business Development & Sales',
 ] as const;
 
+export const JOB_CATEGORIES = [
+  'Retail & E-commerce',
+  'BPO & Customer Care',
+  'IT & Software',
+  'Banking & Finance',
+  'Healthcare',
+  'Digital Marketing & Media',
+  'Hospitality & Tourism',
+  'Electrical & Trade Services',
+] as const;
+
 export const NATURE_OF_EMPLOYMENT = [
   'Full-Time',
   'Part-Time',
@@ -51,7 +62,7 @@ export const FIELD_DEFINITIONS: {
 }[] = [
   { key: 'full_name', label: 'Full Name', required: true, type: 'text', aliases: ['name', 'full_name', 'fullname', 'candidate_name', 'student_name'] },
   { key: 'contact_number', label: 'Contact Number', required: true, type: 'text', aliases: ['contact', 'phone', 'contact_number', 'mobile', 'phone_number', 'mobile_number'] },
-  { key: 'email', label: 'Email Address', required: true, type: 'email', aliases: ['email', 'email_address', 'mail', 'emailid'] },
+  { key: 'email', label: 'Email Address', required: true, type: 'email', aliases: ['email', 'email_address', 'mail', 'emailid', 'e_mail', 'student_email', 'candidate_email', 'personal_email', 'official_email'] },
   { key: 'age', label: 'Age', required: false, type: 'number', aliases: ['age', 'years_old'] },
   { key: 'current_location', label: 'Current Location', required: false, type: 'text', aliases: ['location', 'city', 'current_location', 'address'] },
   { key: 'qualification', label: 'Qualification', required: false, type: 'text', aliases: ['qualification', 'degree', 'education', 'highest_qualification'] },

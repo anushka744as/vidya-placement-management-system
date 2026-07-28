@@ -29,7 +29,7 @@ import {
 
 export default function ResumeBuilderPage() {
   const { user } = useAuth();
-  const studentUserId = user?.id || 'demo-student-id';
+  const studentUserId = user?.id || '';
   const resumeRef = useRef<HTMLDivElement>(null);
 
   const [loading, setLoading] = useState(true);
@@ -77,9 +77,9 @@ export default function ResumeBuilderPage() {
         }
       }
 
-      // Fetch from Supabase database
+      // Fetch from Supabase database, if signed in
       try {
-        const res = await fetchResumeProfile(studentUserId);
+        const res = user?.id ? await fetchResumeProfile(user.id) : { data: undefined };
         if (res.data) {
           const p = res.data;
           setFullName(p.full_name || '');
@@ -126,6 +126,11 @@ export default function ResumeBuilderPage() {
 
   // Save profile to Supabase
   const handleSaveProfile = async () => {
+    if (!user?.id) {
+      toast.success('Saved locally. Sign in to sync your resume and keep it linked to your applications.');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: Partial<ResumeProfile> = {
@@ -141,7 +146,7 @@ export default function ResumeBuilderPage() {
         resume_pdf_url: resumePdfUrl,
       };
 
-      const res = await upsertResumeProfile(studentUserId, payload);
+      const res = await upsertResumeProfile(user.id, payload);
       if (res.success) {
         toast.success('Resume profile saved to database!');
       } else {
@@ -216,21 +221,23 @@ export default function ResumeBuilderPage() {
       const fileName = `${fullName.replace(/\s+/g, '_') || 'Student'}_Resume.pdf`;
       pdf.save(fileName);
 
-      // Save Data URL to state & Supabase
+      // Save Data URL to state, and to Supabase if signed in
       const pdfDataUrl = imgData;
       setResumePdfUrl(pdfDataUrl);
-      await upsertResumeProfile(studentUserId, {
-        full_name: fullName,
-        email,
-        phone,
-        location,
-        summary,
-        education,
-        experience,
-        skills,
-        certifications,
-        resume_pdf_url: pdfDataUrl,
-      });
+      if (user?.id) {
+        await upsertResumeProfile(user.id, {
+          full_name: fullName,
+          email,
+          phone,
+          location,
+          summary,
+          education,
+          experience,
+          skills,
+          certifications,
+          resume_pdf_url: pdfDataUrl,
+        });
+      }
 
       toast.success('Resume PDF generated and downloaded successfully!');
     } catch (err: any) {

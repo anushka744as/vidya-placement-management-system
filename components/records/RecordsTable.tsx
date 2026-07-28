@@ -6,12 +6,14 @@ import { PlacementRecord, PlacementRecordUpdate } from '@/lib/supabase/types';
 import { fetchPlacementRecords, updatePlacementRecord, deletePlacementRecord } from '@/app/actions/records';
 import { ZONES, CENTRES, COURSES, NATURE_OF_EMPLOYMENT, BATCH_YEARS } from '@/lib/constants';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import {
   Search,
   Filter,
   Download,
   Trash2,
   Edit,
+  Eye,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -320,7 +322,7 @@ export function RecordsTable({ refreshTrigger }: { refreshTrigger?: number }) {
         {loading ? (
           <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
             <Loader2 size={32} className="animate-spin text-blue-600" />
-            <p className="text-sm font-medium text-gray-500">Querying Supabase database...</p>
+            <p className="text-sm font-medium text-gray-500">Loading records...</p>
           </div>
         ) : records.length === 0 ? (
           <div className="py-20 text-center space-y-3">
@@ -402,6 +404,13 @@ export function RecordsTable({ refreshTrigger }: { refreshTrigger?: number }) {
 
                     {/* Actions */}
                     <td className="px-4 py-3.5 text-right space-x-1">
+                      <Link
+                        href={`/dashboard/records/profile?email=${encodeURIComponent(r.email)}`}
+                        className="inline-flex p-1.5 hover:bg-gray-100 text-gray-500 rounded-lg transition-colors"
+                        title="View profile — documents & job applications"
+                      >
+                        <Eye size={16} />
+                      </Link>
                       <button
                         onClick={() => setEditingRecord(r)}
                         className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"
@@ -459,7 +468,7 @@ export function RecordsTable({ refreshTrigger }: { refreshTrigger?: number }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Placement Record?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this record from Supabase table <code className="text-red-600 font-mono">placement_records</code>. This action cannot be undone.
+              This will permanently delete this record. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
