@@ -140,7 +140,7 @@ export default function StudentOnboardingPage() {
 
   if (authLoading || checking) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50/60">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-amber-50/50 to-white">
         <Loader2 size={32} className="animate-spin text-blue-600" />
         <p className="text-sm font-medium text-gray-500">Loading...</p>
       </div>
@@ -148,8 +148,8 @@ export default function StudentOnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/60 font-sans">
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50/50 via-orange-50/20 to-white font-sans">
+      <header className="sticky top-0 z-40 bg-amber-50/70 backdrop-blur-md border-b border-amber-100/70">
         <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image src="/images/image.png" alt="Vidya" width={36} height={36} />

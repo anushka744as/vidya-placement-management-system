@@ -144,7 +144,7 @@ export default function StudentLoginPage() {
       </div>
 
       {/* Right Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12 bg-white">
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/50">
         <div className="w-full max-w-md">
           {/* Mobile Header */}
           <div className="flex lg:hidden items-center gap-3 mb-8">

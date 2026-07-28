@@ -36,7 +36,7 @@ export function SuccessStoriesCarousel() {
   if (loading || stories.length === 0) return null;
 
   return (
-    <section className="py-16 md:py-24 bg-gradient-to-b from-white to-blue-50/40 overflow-hidden">
+    <section className="py-16 md:py-24 bg-gradient-to-b from-white to-orange-50/40 overflow-hidden">
       <div className="max-w-4xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
           <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100/80 text-blue-700 text-xs font-bold rounded-full">

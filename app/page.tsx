@@ -18,9 +18,9 @@ import { SuccessStoriesCarousel } from "@/components/home/SuccessStoriesCarousel
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white font-sans flex flex-col justify-between">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50/30 to-white font-sans flex flex-col justify-between">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <nav className="sticky top-0 z-50 bg-amber-50/70 backdrop-blur-md border-b border-amber-100/70">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image src="/images/image.png" alt="Vidya" width={40} height={40} className="rounded-lg p-1 border" />
@@ -33,11 +33,13 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section with Dual Interface Cards */}
-      <section className="relative overflow-hidden py-16 md:py-24 bg-gradient-to-b from-blue-50/40 via-white to-white">
-        <div className="max-w-7xl mx-auto px-6">
+      <section className="relative overflow-hidden py-16 md:py-24">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-200/30 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-200/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3" />
+        <div className="relative max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100/80 text-blue-700 text-xs font-bold rounded-full">
-              <Heart size={14} className="fill-blue-600" /> Vidya NGO Placement Initiative
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-100/80 text-orange-700 text-xs font-bold rounded-full">
+              <Heart size={14} className="fill-orange-600" /> Vidya NGO Placement Initiative
             </span>
             <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
               One Unified System — <span className="text-blue-600">Dual Portals</span> for Students & Admins
@@ -133,7 +135,7 @@ export default function LandingPage() {
       <SuccessStoriesCarousel />
 
       {/* Footer */}
-      <footer className="bg-gray-50 border-t border-gray-100 py-6 text-center text-xs text-gray-500">
+      <footer className="bg-orange-50/50 border-t border-amber-100/70 py-6 text-center text-xs text-gray-500">
         <div className="max-w-7xl mx-auto px-6">
           <p>© 2026 Vidya Placement Management System (VPMS). All rights reserved.</p>
         </div>
