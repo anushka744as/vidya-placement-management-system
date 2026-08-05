@@ -49,12 +49,14 @@ export function StatCard({
   icon: Icon,
   trend,
   color = "blue",
+  onClick,
 }: {
   label: string;
   value: string | number;
   icon: LucideIcon;
   trend?: string;
   color?: "blue" | "orange" | "green" | "purple";
+  onClick?: () => void;
 }) {
   const colors = {
     blue: "text-blue-600",
@@ -64,7 +66,13 @@ export function StatCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-sm transition-shadow">
+    <div
+      onClick={onClick}
+      className={cn(
+        "bg-white rounded-2xl border border-gray-100 p-6 transition-shadow",
+        onClick ? "cursor-pointer hover:shadow-md hover:border-gray-200" : "hover:shadow-sm"
+      )}
+    >
       <div className="flex items-center justify-between mb-4">
         <Icon size={22} className={colors[color]} />
         {trend && (
