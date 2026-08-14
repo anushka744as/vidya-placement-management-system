@@ -24,14 +24,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth state changes
+    // Rely solely on onAuthStateChange: its first emission (INITIAL_SESSION)
+    // only fires once Supabase has finished checking storage AND, on an
+    // OAuth redirect, exchanging the code/token in the URL for a session.
+    // Calling getSession() separately here would race ahead of that
+    // exchange and briefly report a logged-out state right after Google
+    // sign-in, bouncing the user back to the login page.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);

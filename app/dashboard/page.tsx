@@ -24,7 +24,7 @@ import {
   StudentListItem,
   ActiveJobListItem,
 } from "@/app/actions/dashboard";
-import { fetchRecentApplicationsAdmin, RecentApplicationSummary, fetchApplicationsByStatuses, ApplicationGroupItem } from "@/app/actions/portal";
+import { fetchRecentApplicationsAdmin, RecentApplicationSummary, fetchApplicationsByStatuses, ApplicationGroupItem, fetchPendingSelfReportedApplications } from "@/app/actions/portal";
 import { ApplicationStatus } from "@/lib/supabase/portal-types";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -80,6 +80,10 @@ export default function DashboardPage() {
   const [pipelineLoading, setPipelineLoading] = useState(false);
   const [pipelineLists, setPipelineLists] = useState<Partial<Record<Exclude<PipelineKind, null>, ApplicationGroupItem[]>>>({});
 
+  const [showPendingReports, setShowPendingReports] = useState(false);
+  const [pendingReportsLoading, setPendingReportsLoading] = useState(false);
+  const [pendingReportsList, setPendingReportsList] = useState<ApplicationGroupItem[] | null>(null);
+
   useEffect(() => {
     Promise.all([fetchDashboardStats(), fetchApplicationPipelineCounts(), fetchRecentApplicationsAdmin(5)]).then(([statsRes, pipelineRes, appsRes]) => {
       setStats(statsRes.data);
@@ -116,6 +120,14 @@ export default function DashboardPage() {
     setPipelineLoading(false);
   };
 
+  const openPendingReports = async () => {
+    setShowPendingReports(true);
+    setPendingReportsLoading(true);
+    const res = await fetchPendingSelfReportedApplications();
+    setPendingReportsList(res.data);
+    setPendingReportsLoading(false);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-fade-in max-w-7xl mx-auto">
@@ -135,9 +147,13 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-semibold text-gray-900">Application Pipeline</h3>
             {!isLoading && (pipeline?.pendingSelfReports ?? 0) > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+              <button
+                type="button"
+                onClick={openPendingReports}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100 cursor-pointer hover:bg-blue-100 hover:border-blue-200 transition-colors"
+              >
                 <AlertCircle size={12} /> {pipeline!.pendingSelfReports} student-reported update{pipeline!.pendingSelfReports === 1 ? "" : "s"} awaiting confirmation
-              </span>
+              </button>
             )}
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
@@ -312,6 +328,43 @@ export default function DashboardPage() {
                     <p className="text-xs font-semibold text-gray-700">{a.status}</p>
                     {activePipeline === "interview" && a.interview_date && (
                       <p className="text-xs text-gray-500 mt-0.5">{new Date(a.interview_date).toLocaleString()}</p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {/* Pending Self-Reported Updates Modal */}
+      {showPendingReports && (
+        <Modal
+          title={`Student-Reported Updates (${pendingReportsList?.length ?? 0})`}
+          onClose={() => setShowPendingReports(false)}
+        >
+          {pendingReportsLoading ? (
+            <div className="py-10 text-center"><Loader2 size={24} className="mx-auto animate-spin text-blue-600" /></div>
+          ) : !pendingReportsList || pendingReportsList.length === 0 ? (
+            <p className="text-sm text-gray-400 py-6 text-center">No updates awaiting confirmation.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {pendingReportsList.map((a) => (
+                <Link
+                  key={a.id}
+                  href={a.student_email ? `/dashboard/records/profile?email=${encodeURIComponent(a.student_email)}` : "/dashboard/records"}
+                  onClick={() => setShowPendingReports(false)}
+                  className="flex items-center justify-between py-3 px-2 -mx-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{a.student_name}</p>
+                    <p className="text-xs text-gray-400 truncate flex items-center gap-1"><Building2 size={11} /> {a.job_title} · {a.company_name}</p>
+                    <p className="text-xs text-blue-600 mt-0.5">Currently: {a.status}</p>
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <p className="text-xs font-semibold text-gray-700">Reported: {a.self_reported_status}</p>
+                    {a.self_reported_at && (
+                      <p className="text-xs text-gray-500 mt-0.5">{new Date(a.self_reported_at).toLocaleDateString()}</p>
                     )}
                   </div>
                 </Link>
