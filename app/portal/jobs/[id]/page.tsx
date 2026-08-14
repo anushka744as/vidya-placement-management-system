@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StudentLayout } from '@/components/portal/StudentLayout';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { fetchJobById, applyForJob, confirmJobApplication, fetchStudentApplications, fetchResumeProfile } from '@/app/actions/portal';
+import { fetchJobById, applyForJob, fetchStudentApplications, fetchResumeProfile } from '@/app/actions/portal';
 import { Job, JobApplication } from '@/lib/supabase/portal-types';
 import { formatSalary } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -35,6 +35,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [application, setApplication] = useState<JobApplication | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [showResumeNudgeModal, setShowResumeNudgeModal] = useState(false);
+  const [awaitingSelfReport, setAwaitingSelfReport] = useState(false);
 
   const hasApplied = !!application;
 
@@ -74,22 +75,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       return;
     }
 
+    // For jobs with an external application link, we can't verify the student actually
+    // applied on the company's site. So we only open the link and ask them to self-report
+    // afterwards — no application record is created until they confirm they've applied.
+    if (job?.external_link) {
+      window.open(job.external_link, '_blank', 'noopener,noreferrer');
+      setAwaitingSelfReport(true);
+      return;
+    }
+
     setApplying(true);
 
     try {
-      // 1. Submit job application
-      const res = await applyForJob(resolvedParams.id, user.id, { externalLinkOpened: !!job?.external_link });
+      const res = await applyForJob(resolvedParams.id, user.id, {});
 
       if (res.success) {
         if (res.data) setApplication(res.data);
         toast.success(`Application submitted for "${job?.title}"!`);
 
-        // 2. Redirect to the original listing on the company's site, if one was provided
-        if (job?.external_link) {
-          window.open(job.external_link, '_blank', 'noopener,noreferrer');
-        }
-
-        // 3. Check if student has a resume profile setup
+        // Check if student has a resume profile setup
         const resumeRes = await fetchResumeProfile(user.id);
         if (!resumeRes.data || !resumeRes.data.full_name) {
           // Gently nudge toward resume builder
@@ -106,19 +110,30 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   };
 
   const handleConfirmApplied = async () => {
-    if (!application) return;
+    if (!user?.id) return;
     setConfirming(true);
     try {
-      const res = await confirmJobApplication(application.id);
+      const res = await applyForJob(resolvedParams.id, user.id, { selfConfirmedExternal: true });
       if (res.success && res.data) {
         setApplication(res.data);
-        toast.success('Thanks for confirming! The placement team can now see this application is complete.');
+        setAwaitingSelfReport(false);
+        toast.success('Thanks for confirming! This application now shows in My Applications.');
+
+        const resumeRes = await fetchResumeProfile(user.id);
+        if (!resumeRes.data || !resumeRes.data.full_name) {
+          setShowResumeNudgeModal(true);
+        }
       } else {
         toast.error(res.error || 'Could not confirm application.');
       }
     } finally {
       setConfirming(false);
     }
+  };
+
+  const handleNotApplied = () => {
+    setAwaitingSelfReport(false);
+    toast.info('No problem — come back and let us know once you\'ve applied.');
   };
 
   if (loading) {
@@ -212,7 +227,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-50 border border-green-200 text-green-700 font-bold rounded-2xl text-sm shadow-2xs">
                   <CheckCircle2 size={18} /> Applied ✓
                 </div>
-              ) : hasApplied ? (
+              ) : awaitingSelfReport ? (
                 <div className="inline-flex items-center gap-2 px-6 py-3 bg-amber-50 border border-amber-200 text-amber-700 font-bold rounded-2xl text-sm shadow-2xs">
                   <HelpCircle size={18} /> Awaiting Confirmation
                 </div>
@@ -246,12 +261,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </div>
 
           {/* Self-Reported External Application Confirmation */}
-          {hasApplied && job.external_link && application?.status !== 'Applied' && (
+          {awaitingSelfReport && !hasApplied && (
             <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
               <div className="flex items-start gap-2.5 text-xs text-amber-800">
                 <HelpCircle size={16} className="shrink-0 mt-0.5" />
                 <span>
-                  We logged that you opened {job.company_name}'s application link, but this doesn't count as applied yet. <span className="font-bold">Did you finish applying there?</span> Confirming is what tells the placement team your application is actually complete.
+                  We opened {job.company_name}'s application link for you, but this doesn't count as applied yet. <span className="font-bold">Have you finished applying there?</span> This application will only show in My Applications and to the placement team once you confirm.
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -267,6 +282,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   className="px-4 py-2 bg-white border border-amber-300 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all flex items-center gap-2"
                 >
                   <ExternalLink size={14} /> Reopen Application Link
+                </button>
+                <button
+                  onClick={handleNotApplied}
+                  disabled={confirming}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-100 transition-all disabled:opacity-50"
+                >
+                  No, not yet
                 </button>
               </div>
             </div>

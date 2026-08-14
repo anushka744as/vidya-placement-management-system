@@ -152,7 +152,7 @@ export async function fetchJobById(id: string): Promise<{ data?: Job; error?: st
   }
 }
 
-export async function applyForJob(jobId: string, userId: string, opts: { externalLinkOpened?: boolean } = {}): Promise<{ success: boolean; data?: JobApplication; error?: string }> {
+export async function applyForJob(jobId: string, userId: string, opts: { externalLinkOpened?: boolean; selfConfirmedExternal?: boolean } = {}): Promise<{ success: boolean; data?: JobApplication; error?: string }> {
   try {
     const supabase = createServerSupabaseClient();
 
@@ -178,6 +178,7 @@ export async function applyForJob(jobId: string, userId: string, opts: { externa
         applied_at: now,
         updated_at: now,
         link_opened_at: opts.externalLinkOpened ? now : null,
+        confirmed_applied_at: opts.selfConfirmedExternal ? now : null,
       })
       .select()
       .single();
