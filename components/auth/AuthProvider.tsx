@@ -24,19 +24,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Rely solely on onAuthStateChange: its first emission (INITIAL_SESSION)
-    // only fires once Supabase has finished checking storage AND, on an
-    // OAuth redirect, exchanging the code/token in the URL for a session.
-    // Calling getSession() separately here would race ahead of that
-    // exchange and briefly report a logged-out state right after Google
-    // sign-in, bouncing the user back to the login page.
+    let ignore = false;
+
+    // Right after a Google OAuth redirect, the URL still carries the
+    // exchange params (?code=... or #access_token=...). Calling
+    // getSession() at that moment can resolve with session: null before
+    // supabase-js finishes exchanging those params, which would
+    // incorrectly report "logged out" and bounce the user back to login.
+    // In that case, skip the eager getSession() call and let
+    // onAuthStateChange's own resolution (after the exchange completes)
+    // be the sole source of truth. On every other page load there are no
+    // such params, so this stays on the original fast path.
+    const hasOAuthParamsInUrl =
+      typeof window !== 'undefined' &&
+      (window.location.hash.includes('access_token') ||
+        new URLSearchParams(window.location.search).has('code'));
+
+    if (!hasOAuthParamsInUrl) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (ignore) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      });
+    }
+
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (ignore) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     return () => {
+      ignore = true;
       subscription.unsubscribe();
     };
   }, []);
