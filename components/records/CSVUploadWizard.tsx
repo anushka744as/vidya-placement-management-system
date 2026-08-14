@@ -21,7 +21,45 @@ import {
   Check,
   ChevronRight,
   Sliders,
+  Download,
 } from 'lucide-react';
+
+const TEMPLATE_SAMPLE_ROW: Record<string, string> = {
+  full_name: 'Jane Doe',
+  contact_number: '9876543210',
+  email: 'jane.doe@example.com',
+  age: '24',
+  current_location: 'Mumbai',
+  qualification: 'B.Com',
+  zone: 'West',
+  centre: 'Andheri',
+  course_name: 'Retail Sales Associate',
+  batch_completion_month: 'March',
+  batch_completion_year: '2026',
+  technical_skills: 'MS Excel, Tally',
+  work_experience: '1 year retail experience',
+  nature_of_employment: 'Full-Time',
+  preferred_job_role: 'Sales Executive',
+  preferred_location: 'Mumbai',
+  expected_salary_stipend: '15000',
+  additional_notes: 'Available to join immediately',
+};
+
+function downloadCSVTemplate() {
+  const headers = FIELD_DEFINITIONS.map((field) => field.label);
+  const sampleRow = FIELD_DEFINITIONS.map((field) => TEMPLATE_SAMPLE_ROW[field.key] ?? '');
+  const csvContent = Papa.unparse([headers, sampleRow]);
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'placement_records_template.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 interface ParsedRow {
   rowIndex: number;
@@ -303,10 +341,19 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
           <p className="text-xs text-gray-500 max-w-md mx-auto mb-6">
             Drag & drop your candidate list .csv file here, or click to browse. Standard headers like Full Name, Email, Contact Number will be automatically mapped.
           </p>
-          <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-sm transition-all">
-            <FileSpreadsheet size={16} /> Choose CSV File
-            <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
-          </label>
+          <div className="flex items-center justify-center gap-3">
+            <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-sm transition-all">
+              <FileSpreadsheet size={16} /> Choose CSV File
+              <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+            </label>
+            <button
+              type="button"
+              onClick={downloadCSVTemplate}
+              className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold rounded-xl shadow-sm transition-all"
+            >
+              <Download size={16} /> Download Template
+            </button>
+          </div>
         </div>
       )}
 
