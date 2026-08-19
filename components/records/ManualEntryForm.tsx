@@ -39,6 +39,24 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const NAME_PATTERN = /^[A-Za-z\s'-]*$/;
+  const EMAIL_CHAR_PATTERN = /^[A-Za-z0-9@._%+-]*$/;
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (NAME_PATTERN.test(value)) {
+      setFormData({ ...formData, full_name: value });
+    }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (EMAIL_CHAR_PATTERN.test(value)) {
+      setFormData({ ...formData, email: value });
+    }
+  };
+
   const handleZoneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newZone = e.target.value;
     const availableCentres = CENTRES[newZone] || [];
@@ -54,6 +72,8 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
 
     if (!formData.full_name?.trim()) {
       errs.full_name = 'Full name is required';
+    } else if (!NAME_PATTERN.test(formData.full_name.trim())) {
+      errs.full_name = 'Full name can only contain letters, spaces, hyphens and apostrophes';
     }
 
     if (!formData.contact_number?.trim()) {
@@ -62,7 +82,7 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
 
     if (!formData.email?.trim()) {
       errs.email = 'Email address is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+    } else if (!EMAIL_PATTERN.test(formData.email.trim())) {
       errs.email = 'Please enter a valid email address';
     }
 
@@ -179,7 +199,7 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
               <input
                 type="text"
                 value={formData.full_name || ''}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={handleNameChange}
                 placeholder="e.g. Rahul Sharma"
                 className={`w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all ${
                   errors.full_name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
@@ -219,7 +239,7 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
               <input
                 type="email"
                 value={formData.email || ''}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={handleEmailChange}
                 placeholder="rahul.sharma@example.com"
                 className={`w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all ${
                   errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
