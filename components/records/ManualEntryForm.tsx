@@ -6,6 +6,7 @@ import { ZONES, CENTRES, COURSES, NATURE_OF_EMPLOYMENT, MONTHS, BATCH_YEARS } fr
 import { createPlacementRecord } from '@/app/actions/records';
 import { PlacementRecordInsert, NatureOfEmployment } from '@/lib/supabase/types';
 import { toast } from 'sonner';
+import { isValidPhone } from '@/lib/utils';
 import { User, Phone, Mail, MapPin, GraduationCap, Building, Calendar, Award, Briefcase, DollarSign, FileText, Send, Loader2, Sparkles } from 'lucide-react';
 
 interface ManualEntryFormProps {
@@ -57,6 +58,15 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
     }
   };
 
+  const PHONE_CHAR_PATTERN = /^[\d\s+-]*$/;
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (PHONE_CHAR_PATTERN.test(value)) {
+      setFormData({ ...formData, contact_number: value });
+    }
+  };
+
   const handleZoneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newZone = e.target.value;
     const availableCentres = CENTRES[newZone] || [];
@@ -78,6 +88,8 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
 
     if (!formData.contact_number?.trim()) {
       errs.contact_number = 'Contact number is required';
+    } else if (!isValidPhone(formData.contact_number)) {
+      errs.contact_number = 'Enter a valid 10-digit contact number';
     }
 
     if (!formData.email?.trim()) {
@@ -112,6 +124,14 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
         contact_number: formData.contact_number!.trim(),
         email: formData.email!.trim(),
         age: formData.age ? Number(formData.age) : null,
+        date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender || null,
+        address: formData.address?.trim() || null,
+        institution: formData.institution?.trim() || null,
+        year_of_passing: formData.year_of_passing || null,
+        percentage_grade: formData.percentage_grade?.trim() || null,
+        job_category: formData.job_category || null,
+        travel_preference: formData.travel_preference || null,
         current_location: formData.current_location?.trim() || null,
         qualification: formData.qualification?.trim() || null,
         zone: formData.zone || null,
@@ -217,9 +237,9 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
             <div className="relative">
               <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
-                type="text"
+                type="tel"
                 value={formData.contact_number || ''}
-                onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
+                onChange={handlePhoneChange}
                 placeholder="e.g. +91 9876543210"
                 className={`w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all ${
                   errors.contact_number ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
@@ -384,9 +404,9 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
             </select>
           </div>
 
-          {/* Nature of Employment */}
+          {/* Employment Type */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Nature of Employment (Enum)</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Employment Type</label>
             <select
               value={formData.nature_of_employment || 'Full-Time'}
               onChange={(e) => setFormData({ ...formData, nature_of_employment: e.target.value as NatureOfEmployment })}
@@ -432,14 +452,16 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
             />
           </div>
 
-          {/* Expected Salary / Stipend */}
+          {/* Expected Package / Salary / Stipend */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Expected Salary / Stipend</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              {formData.nature_of_employment === 'Full-Time' ? 'Expected Package (LPA)' : 'Expected Monthly Salary / Stipend'}
+            </label>
             <input
               type="text"
               value={formData.expected_salary_stipend || ''}
               onChange={(e) => setFormData({ ...formData, expected_salary_stipend: e.target.value })}
-              placeholder="e.g. ₹4.5 LPA or ₹20,000/pm"
+              placeholder={formData.nature_of_employment === 'Full-Time' ? 'e.g. 4.5 LPA' : 'e.g. ₹20,000 / month'}
               className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
             />
           </div>

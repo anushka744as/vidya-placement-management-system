@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { fetchSelectedStudentsAdmin, getApplicationProofSignedUrl, SelectedStudentSummary } from '@/app/actions/portal';
+import Papa from 'papaparse';
+import { fetchSelectedStudentsAdmin, getApplicationProofSignedUrls, SelectedStudentSummary } from '@/app/actions/portal';
 import { toast } from 'sonner';
-import { Loader2, Building2, AlertCircle, Eye, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Loader2, Building2, AlertCircle, Eye, RefreshCw, CheckCircle2, Download } from 'lucide-react';
 
 export function SelectedStudentsTable() {
   const [rows, setRows] = useState<SelectedStudentSummary[]>([]);
@@ -22,13 +23,11 @@ export function SelectedStudentsTable() {
 
       const withProof = res.data.filter((r) => r.proof_document_url);
       if (withProof.length > 0) {
-        const entries = await Promise.all(
-          withProof.map(async (r) => {
-            const signed = await getApplicationProofSignedUrl(r.proof_document_url!);
-            return [r.id, signed.url] as const;
-          })
-        );
-        setProofUrls(Object.fromEntries(entries.filter(([, url]) => !!url)) as Record<string, string>);
+        const { urls } = await getApplicationProofSignedUrls(withProof.map((r) => r.proof_document_url!));
+        const entries = withProof
+          .map((r) => [r.id, urls[r.proof_document_url!]] as const)
+          .filter(([, url]) => !!url);
+        setProofUrls(Object.fromEntries(entries) as Record<string, string>);
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to fetch selected students.');
@@ -41,6 +40,36 @@ export function SelectedStudentsTable() {
     loadData();
   }, []);
 
+  const handleExportCSV = () => {
+    if (rows.length === 0) {
+      toast.warning('No placed students to export.');
+      return;
+    }
+
+    const csvData = rows.map((r) => ({
+      'Student Name': r.student_name,
+      'Student Email': r.student_email,
+      Company: r.company_name,
+      'Job Title': r.job_title,
+      Designation: r.designation ?? '',
+      Status: r.status,
+      'Joining Date': r.joining_date ? new Date(r.joining_date).toLocaleDateString() : '',
+      'Proof of Joining': r.proof_document_url ? 'Uploaded' : 'Not uploaded',
+    }));
+
+    const csvString = Papa.unparse(csvData);
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `placed_students_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} placed students to CSV.`);
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between p-5 border-b border-gray-100">
@@ -48,13 +77,21 @@ export function SelectedStudentsTable() {
           <h3 className="text-base font-bold text-gray-900">Selected Students & Proof of Joining</h3>
           <p className="text-xs text-gray-500 mt-0.5">Everyone marked Selected or Joined, with their proof of joining status.</p>
         </div>
-        <button
-          onClick={loadData}
-          className="p-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
-          title="Refresh"
-        >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <Download size={14} /> Export CSV
+          </button>
+          <button
+            onClick={loadData}
+            className="p-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {loading ? (

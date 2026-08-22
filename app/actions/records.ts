@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { PlacementRecord, PlacementRecordInsert, PlacementRecordUpdate } from '@/lib/supabase/types';
 import { ensureStudentLinkedByEmail } from '@/app/actions/students';
+import { isValidPhone } from '@/lib/utils';
 
 // `age` and `batch_completion_year` are integer columns in the DB, but data coming in
 // (CSV rows, manual entry) can be messy — e.g. "December 2025" instead of a bare year.
@@ -138,6 +139,9 @@ export async function createPlacementRecord(recordData: PlacementRecordInsert): 
     if (!recordData.full_name || !recordData.contact_number || !recordData.email) {
       return { success: false, error: 'Full Name, Contact Number, and Email are required.' };
     }
+    if (!isValidPhone(recordData.contact_number)) {
+      return { success: false, error: 'Contact Number must be a valid 10-digit number.' };
+    }
 
     const supabase = createServerSupabaseClient();
     const { data, error } = await upsertPlacementRecordByEmail(supabase, {
@@ -172,6 +176,10 @@ export async function fetchPlacementRecordByEmail(email: string): Promise<{ data
 
 export async function updatePlacementRecord(id: string, recordData: PlacementRecordUpdate): Promise<{ success: boolean; data?: PlacementRecord; error?: string }> {
   try {
+    if ('contact_number' in recordData && !isValidPhone(recordData.contact_number)) {
+      return { success: false, error: 'Contact Number must be a valid 10-digit number.' };
+    }
+
     const supabase = createServerSupabaseClient();
     const { data, error } = await (supabase.from('placement_records') as any)
       .update({
@@ -232,7 +240,11 @@ export async function bulkInsertPlacementRecords(
     for (let i = 0; i < records.length; i += concurrency) {
       const batch = records.slice(i, i + concurrency);
       const results = await Promise.all(
-        batch.map((r) => upsertPlacementRecordByEmail(supabase, { ...sanitizeIntegerFields(r), source: 'csv_upload' }))
+        batch.map((r) =>
+          isValidPhone(r.contact_number)
+            ? upsertPlacementRecordByEmail(supabase, { ...sanitizeIntegerFields(r), source: 'csv_upload' })
+            : Promise.resolve<{ data?: PlacementRecord; error?: string }>({ error: 'Contact Number must be a valid 10-digit number.' })
+        )
       );
 
       for (let j = 0; j < results.length; j++) {

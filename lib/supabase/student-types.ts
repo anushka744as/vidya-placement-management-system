@@ -21,6 +21,9 @@ export interface Student {
   institution: string;
   year_of_passing: string;
   percentage_grade: string;
+  course_name: string;
+  batch_completion_month: string;
+  batch_completion_year: string;
   skills: string[];
   preferred_job_role: string;
   salary_expectation: string;

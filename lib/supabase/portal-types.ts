@@ -12,6 +12,8 @@ export interface Job {
   centre?: string;
   location: string;
   salary_range: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
   description: string;
   requirements: string[] | string;
   status: JobStatus;

@@ -4,12 +4,12 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { StatusBadge } from "@/components/shared/StatCard";
 import {
   fetchStudentProfileByEmail,
-  getStudentDocumentSignedUrl,
+  getStudentDocumentSignedUrls,
   updateStudentDocuments,
   ensureStudentLinkedByEmail,
 } from "@/app/actions/students";
 import { fetchPlacementRecordByEmail } from "@/app/actions/records";
-import { fetchApplicationsByEmail, updateApplicationStatus, uploadApplicationProof, getApplicationProofSignedUrl } from "@/app/actions/portal";
+import { fetchApplicationsByEmail, updateApplicationStatus, uploadApplicationProof, getApplicationProofSignedUrls } from "@/app/actions/portal";
 import { Student } from "@/lib/supabase/student-types";
 import { PlacementRecord } from "@/lib/supabase/types";
 import { JobApplication, ApplicationStatus } from "@/lib/supabase/portal-types";
@@ -82,7 +82,7 @@ function dateFromMonthYear(month: string, year: string): string | null {
   return new Date(Number(year), monthIndex, 1).toISOString();
 }
 
-function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (updated: JobApplication) => void }) {
+function ApplicationRow({ app, onUpdated, initialProofSignedUrl }: { app: JobApplication; onUpdated: (updated: JobApplication) => void; initialProofSignedUrl: string | null }) {
   const [status, setStatus] = useState<ApplicationStatus>(app.status);
   const [interviewDate, setInterviewDate] = useState(toDateTimeLocal(app.interview_date));
   const [adminNotes, setAdminNotes] = useState(app.admin_notes || "");
@@ -92,8 +92,9 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
   const [probationMonth, setProbationMonth] = useState(monthYearFromDate(app.probation_end_date).month);
   const [probationYear, setProbationYear] = useState(monthYearFromDate(app.probation_end_date).year);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [proofSignedUrl, setProofSignedUrl] = useState<string | null>(null);
+  const [proofSignedUrl, setProofSignedUrl] = useState<string | null>(initialProofSignedUrl);
   const [isUploadingProof, setIsUploadingProof] = useState(false);
   const proofInputRef = useRef<HTMLInputElement>(null);
 
@@ -101,10 +102,8 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
   const isPlaced = status === "Selected" || status === "Joined";
 
   useEffect(() => {
-    if (app.proof_document_url) {
-      getApplicationProofSignedUrl(app.proof_document_url).then((r) => setProofSignedUrl(r.url || null));
-    }
-  }, [app.proof_document_url]);
+    setProofSignedUrl(initialProofSignedUrl);
+  }, [initialProofSignedUrl]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -128,6 +127,29 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
     setIsSaving(false);
   };
 
+  const handleAcceptSelfReported = async () => {
+    if (!app.self_reported_status) return;
+    setIsAccepting(true);
+    const res = await updateApplicationStatus(app.id, {
+      status: app.self_reported_status,
+      interview_date: app.interview_date,
+      admin_notes: app.admin_notes,
+      designation: app.designation,
+      salary_offered: app.salary_offered,
+      joining_date: app.joining_date,
+      probation_end_date: app.probation_end_date,
+    });
+
+    if (res.success && res.data) {
+      toast.success(`Accepted student-reported status: ${app.self_reported_status}.`);
+      setStatus(res.data.status);
+      onUpdated(res.data);
+    } else {
+      toast.error(res.error || "Could not accept the reported status.");
+    }
+    setIsAccepting(false);
+  };
+
   const handleProofFileChange = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
@@ -141,8 +163,8 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
       toast.success("Proof document uploaded.");
       onUpdated(res.data);
       if (res.data.proof_document_url) {
-        const signed = await getApplicationProofSignedUrl(res.data.proof_document_url);
-        setProofSignedUrl(signed.url || null);
+        const signed = await getApplicationProofSignedUrls([res.data.proof_document_url]);
+        setProofSignedUrl(signed.urls[res.data.proof_document_url] || null);
       }
     } else {
       toast.error(res.error || "Could not upload proof document.");
@@ -176,10 +198,18 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
             </div>
           )}
           {app.self_reported_at && (
-            <div>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
                 <AlertCircle size={10} /> Student self-reported: {app.self_reported_status} on {new Date(app.self_reported_at).toLocaleDateString()} — unconfirmed
               </span>
+              <button
+                type="button"
+                onClick={handleAcceptSelfReported}
+                disabled={isAccepting}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-full px-2.5 py-0.5 disabled:opacity-60"
+              >
+                {isAccepting ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />} Accept
+              </button>
             </div>
           )}
           {isPlaced && (
@@ -238,7 +268,7 @@ function ApplicationRow({ app, onUpdated }: { app: JobApplication; onUpdated: (u
                 <input value={designation} onChange={(e) => setDesignation(e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs bg-white" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">Salary Offered</label>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Monthly Salary Offered</label>
                 <input value={salaryOffered} onChange={(e) => setSalaryOffered(e.target.value)} placeholder="₹20,000 / month" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs bg-white" />
               </div>
               <div>
@@ -447,17 +477,25 @@ function RecordProfileContent() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [applicationsLinked, setApplicationsLinked] = useState(true);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
+  const [proofSignedUrls, setProofSignedUrls] = useState<Record<string, string>>({});
 
-  const loadDocuments = (s: Student) => {
+  const loadDocuments = async (s: Student) => {
     setPhotoUrl(null);
     setResumeUrl(null);
     setIdProofUrl(null);
     setCertificateUrls([]);
-    if (s.photo_url) getStudentDocumentSignedUrl(s.photo_url).then((r) => setPhotoUrl(r.url || null));
-    if (s.resume_url) getStudentDocumentSignedUrl(s.resume_url).then((r) => setResumeUrl(r.url || null));
-    if (s.id_proof_url) getStudentDocumentSignedUrl(s.id_proof_url).then((r) => setIdProofUrl(r.url || null));
+
+    const paths = [s.photo_url, s.resume_url, s.id_proof_url, ...(s.certificate_urls || [])].filter(
+      (p): p is string => !!p
+    );
+    if (paths.length === 0) return;
+
+    const { urls } = await getStudentDocumentSignedUrls(paths);
+    if (s.photo_url) setPhotoUrl(urls[s.photo_url] || null);
+    if (s.resume_url) setResumeUrl(urls[s.resume_url] || null);
+    if (s.id_proof_url) setIdProofUrl(urls[s.id_proof_url] || null);
     if (s.certificate_urls?.length) {
-      Promise.all(s.certificate_urls.map(async (path) => ({ path, url: (await getStudentDocumentSignedUrl(path)).url || null }))).then(setCertificateUrls);
+      setCertificateUrls(s.certificate_urls.map((path) => ({ path, url: urls[path] || null })));
     }
   };
 
@@ -488,6 +526,12 @@ function RecordProfileContent() {
         setApplications(appsRes.data);
         setApplicationsLinked(appsRes.linked);
         setApplicationsLoading(false);
+
+        const proofPaths = appsRes.data.map((a) => a.proof_document_url).filter((p): p is string => !!p);
+        if (proofPaths.length > 0) {
+          const { urls } = await getApplicationProofSignedUrls(proofPaths);
+          setProofSignedUrls(urls);
+        }
       }
       setIsLoading(false);
     })();
@@ -686,6 +730,7 @@ function RecordProfileContent() {
                     <ApplicationRow
                       key={app.id}
                       app={app}
+                      initialProofSignedUrl={app.proof_document_url ? proofSignedUrls[app.proof_document_url] || null : null}
                       onUpdated={(updated) => setApplications((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)))}
                     />
                   ))}

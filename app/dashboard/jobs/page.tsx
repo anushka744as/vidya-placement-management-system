@@ -2,7 +2,7 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Job } from "@/lib/supabase/portal-types";
-import { ZONES } from "@/lib/constants";
+import { ZONES, SALARY_RANGE_BUCKETS, jobMatchesSalaryBucket } from "@/lib/constants";
 import { fetchAllJobsAdmin, createJob, updateJob, deleteJob } from "@/app/actions/portal";
 import {
   Search,
@@ -15,6 +15,7 @@ import {
   Loader2,
   CheckCircle2,
   X,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
@@ -29,6 +30,8 @@ function createJobDraft(): Omit<Job, 'id' | 'created_at'> {
     city: '',
     location: '',
     salary_range: '',
+    salary_min: null,
+    salary_max: null,
     description: '',
     requirements: [],
     status: 'Open',
@@ -54,6 +57,7 @@ export default function JobsPage() {
   const [city, setCity] = useState("all");
   const [sector, setSector] = useState("all");
   const [jobType, setJobType] = useState("all");
+  const [salaryRange, setSalaryRange] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(createJobDraft());
   const [isSaving, setIsSaving] = useState(false);
@@ -90,8 +94,9 @@ export default function JobsPage() {
     const matchCity = city === "all" || job.city === city;
     const matchSector = sector === "all" || job.sector === sector;
     const matchType = jobType === "all" || job.job_type === jobType;
-    return matchSearch && matchZone && matchCity && matchSector && matchType;
-  }), [jobs, search, zone, city, sector, jobType]);
+    const matchSalary = jobMatchesSalaryBucket(job, salaryRange);
+    return matchSearch && matchZone && matchCity && matchSector && matchType && matchSalary;
+  }), [jobs, search, zone, city, sector, jobType, salaryRange]);
 
   const resetForm = () => {
     setForm(createJobDraft());
@@ -110,6 +115,8 @@ export default function JobsPage() {
       city: job.city,
       location: job.location,
       salary_range: job.salary_range,
+      salary_min: job.salary_min ?? null,
+      salary_max: job.salary_max ?? null,
       description: job.description,
       requirements: Array.isArray(job.requirements) ? job.requirements : (job.requirements || '').split('\n').filter(Boolean),
       status: job.status,
@@ -226,8 +233,16 @@ export default function JobsPage() {
                 <input required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Salary / Stipend</label>
-                <input required value={form.salary_range} onChange={(e) => setForm({ ...form, salary_range: e.target.value })} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" />
+                <label className="mb-1 block text-sm font-medium text-gray-700">Monthly Salary (display text)</label>
+                <input required value={form.salary_range} onChange={(e) => setForm({ ...form, salary_range: e.target.value })} placeholder="e.g. ₹20,000 - ₹25,000/month" className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Monthly Salary Min (₹)</label>
+                <input type="number" min={0} value={form.salary_min ?? ''} onChange={(e) => setForm({ ...form, salary_min: e.target.value === '' ? null : Number(e.target.value) })} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Monthly Salary Max (₹)</label>
+                <input type="number" min={0} value={form.salary_max ?? ''} onChange={(e) => setForm({ ...form, salary_max: e.target.value === '' ? null : Number(e.target.value) })} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
@@ -284,6 +299,10 @@ export default function JobsPage() {
               <option value="Part-Time">Part-Time</option>
               <option value="Internship">Internship</option>
             </select>
+            <select value={salaryRange} onChange={(e) => setSalaryRange(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer">
+              <option value="all">All Salary Ranges</option>
+              {SALARY_RANGE_BUCKETS.map((b) => <option key={b.label} value={b.label}>{b.label}</option>)}
+            </select>
           </div>
         </div>
 
@@ -315,6 +334,9 @@ export default function JobsPage() {
               <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-500">
                 <span className="flex items-center gap-1 rounded-lg bg-gray-50 px-2.5 py-1"><MapPin size={12} /> {job.location || `${job.city}, ${job.zone}`}</span>
                 <span className="flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1 text-blue-700"><Briefcase size={12} /> {job.job_type}</span>
+                {job.salary_range ? (
+                  <span className="flex items-center gap-1 rounded-lg bg-green-50 px-2.5 py-1 text-green-700"><Wallet size={12} /> {job.salary_range}</span>
+                ) : null}
               </div>
 
               <p className="mt-4 line-clamp-3 text-sm text-gray-600">{job.description}</p>

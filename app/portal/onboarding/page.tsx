@@ -6,7 +6,8 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 import { Loader2, Plus, X, Upload, FileCheck, LogOut, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { ZONES, JOB_CATEGORIES } from '@/lib/constants';
+import { ZONES, JOB_CATEGORIES, COURSES, MONTHS, BATCH_YEARS } from '@/lib/constants';
+import { isValidPhone } from '@/lib/utils';
 import { createStudentFromPortal, fetchStudentProfileByEmail } from '@/app/actions/students';
 import { CentreInput } from '@/components/shared/CentreInput';
 
@@ -24,6 +25,9 @@ function createEmptyForm() {
     institution: '',
     year_of_passing: '',
     percentage_grade: '',
+    course_name: '',
+    batch_completion_month: '',
+    batch_completion_year: '',
     preferred_job_role: '',
     salary_expectation: '',
     preferred_city: '',
@@ -96,6 +100,10 @@ export default function StudentOnboardingPage() {
     }
     if (!form.phone.trim()) {
       toast.error('Phone number is required.');
+      return;
+    }
+    if (!isValidPhone(form.phone)) {
+      toast.error('Enter a valid 10-digit phone number.');
       return;
     }
 
@@ -251,6 +259,27 @@ export default function StudentOnboardingPage() {
                 <label className={labelClass}>Percentage / Grade</label>
                 <input type="text" placeholder="75%" value={form.percentage_grade} onChange={(e) => update('percentage_grade', e.target.value)} className={inputClass} />
               </div>
+              <div>
+                <label className={labelClass}>Course Name</label>
+                <select value={form.course_name} onChange={(e) => update('course_name', e.target.value)} className={inputClass}>
+                  <option value="">Select course</option>
+                  {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Batch Completion Month</label>
+                <select value={form.batch_completion_month} onChange={(e) => update('batch_completion_month', e.target.value)} className={inputClass}>
+                  <option value="">Select month</option>
+                  {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Batch Completion Year</label>
+                <select value={form.batch_completion_year} onChange={(e) => update('batch_completion_year', e.target.value)} className={inputClass}>
+                  <option value="">Select year</option>
+                  {BATCH_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -294,7 +323,7 @@ export default function StudentOnboardingPage() {
                 <input type="text" placeholder="Sales Executive" value={form.preferred_job_role} onChange={(e) => update('preferred_job_role', e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label className={labelClass}>Salary Expectation</label>
+                <label className={labelClass}>Monthly Salary Expectation</label>
                 <input type="text" placeholder="₹18,000" value={form.salary_expectation} onChange={(e) => update('salary_expectation', e.target.value)} className={inputClass} />
               </div>
               <div>

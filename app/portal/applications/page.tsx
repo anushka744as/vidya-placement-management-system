@@ -381,7 +381,7 @@ export default function MyApplicationsPage() {
                   {isSuccess && (app.designation || app.salary_offered || app.joining_date || app.probation_end_date) && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-800">
                       {app.designation && <div><p className="font-bold uppercase text-[10px] text-green-600">Designation</p>{app.designation}</div>}
-                      {app.salary_offered && <div><p className="font-bold uppercase text-[10px] text-green-600">Salary</p>{app.salary_offered}</div>}
+                      {app.salary_offered && <div><p className="font-bold uppercase text-[10px] text-green-600">Monthly Salary</p>{app.salary_offered}</div>}
                       {app.joining_date && <div><p className="font-bold uppercase text-[10px] text-green-600">Joining Date</p>{new Date(app.joining_date).toLocaleDateString()}</div>}
                       {app.probation_end_date && (
                         <div>

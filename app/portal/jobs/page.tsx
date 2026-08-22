@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { StudentLayout } from '@/components/portal/StudentLayout';
 import { fetchOpenJobs } from '@/app/actions/portal';
 import { Job, JobType } from '@/lib/supabase/portal-types';
-import { ZONES } from '@/lib/constants';
+import { ZONES, SALARY_RANGE_BUCKETS } from '@/lib/constants';
 import { formatSalary } from '@/lib/utils';
 import {
   Search,
@@ -50,6 +50,7 @@ export default function StudentJobListingsPage() {
   const [selectedCity, setSelectedCity] = useState('all');
   const [selectedSector, setSelectedSector] = useState('all');
   const [selectedJobType, setSelectedJobType] = useState('all');
+  const [selectedSalaryRange, setSelectedSalaryRange] = useState('all');
 
   const loadJobs = useCallback(async () => {
     setLoading(true);
@@ -60,6 +61,7 @@ export default function StudentJobListingsPage() {
         city: selectedCity,
         sector: selectedSector,
         job_type: selectedJobType,
+        salary_range: selectedSalaryRange,
       });
       setJobs(res.data);
     } catch {
@@ -67,7 +69,7 @@ export default function StudentJobListingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, selectedZone, selectedCity, selectedSector, selectedJobType]);
+  }, [search, selectedZone, selectedCity, selectedSector, selectedJobType, selectedSalaryRange]);
 
   useEffect(() => {
     loadJobs();
@@ -118,7 +120,7 @@ export default function StudentJobListingsPage() {
           </div>
 
           {/* Cascading Filters Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-gray-100 text-xs">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-gray-100 text-xs">
             {/* 1. Zone */}
             <div>
               <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">1. Zone</label>
@@ -182,6 +184,23 @@ export default function StudentJobListingsPage() {
                 <option value="Full-Time">Full-Time</option>
                 <option value="Part-Time">Part-Time</option>
                 <option value="Internship">Internship</option>
+              </select>
+            </div>
+
+            {/* 5. Salary Range */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">5. Monthly Salary</label>
+              <select
+                value={selectedSalaryRange}
+                onChange={(e) => setSelectedSalaryRange(e.target.value)}
+                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-green-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="all">All Salary Ranges</option>
+                {SALARY_RANGE_BUCKETS.map((b) => (
+                  <option key={b.label} value={b.label}>
+                    {b.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -252,6 +271,7 @@ export default function StudentJobListingsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <DollarSign size={14} className="text-green-600 shrink-0" />
+                      <span className="text-gray-400">Monthly Salary:</span>
                       <span className="font-semibold text-green-700">{formatSalary(job.salary_range)}</span>
                     </div>
                   </div>

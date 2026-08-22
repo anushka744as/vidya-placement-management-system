@@ -3,6 +3,7 @@
 import { randomUUID } from 'crypto';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { Student, StudentInsert, StudentUpdate } from '@/lib/supabase/student-types';
+import { isValidPhone } from '@/lib/utils';
 
 const DOCUMENTS_BUCKET = 'student-documents';
 
@@ -121,6 +122,9 @@ function buildFieldsFromForm(formData: FormData): StudentInsert {
     institution: readText(formData, 'institution'),
     year_of_passing: readText(formData, 'year_of_passing'),
     percentage_grade: readText(formData, 'percentage_grade'),
+    course_name: readText(formData, 'course_name'),
+    batch_completion_month: readText(formData, 'batch_completion_month'),
+    batch_completion_year: readText(formData, 'batch_completion_year'),
     skills: readSkills(formData),
     preferred_job_role: readText(formData, 'preferred_job_role'),
     salary_expectation: readText(formData, 'salary_expectation'),
@@ -152,6 +156,9 @@ export async function createStudent(formData: FormData): Promise<{ success: bool
     const fields = buildFieldsFromForm(formData);
     if (!fields.full_name) {
       return { success: false, error: 'Full name is required.' };
+    }
+    if (!isValidPhone(fields.phone)) {
+      return { success: false, error: 'Phone number must be a valid 10-digit number.' };
     }
 
     const supabase = createServerSupabaseClient();
@@ -196,6 +203,9 @@ export async function updateStudent(id: string, formData: FormData): Promise<{ s
     const fields = buildFieldsFromForm(formData);
     if (!fields.full_name) {
       return { success: false, error: 'Full name is required.' };
+    }
+    if (!isValidPhone(fields.phone)) {
+      return { success: false, error: 'Phone number must be a valid 10-digit number.' };
     }
 
     const supabase = createServerSupabaseClient();
@@ -265,6 +275,16 @@ export async function deleteStudent(id: string): Promise<{ success: boolean; err
   }
 }
 
+function computeAge(dateOfBirth: string): number | null {
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) age--;
+  return age;
+}
+
 export async function createStudentFromPortal(formData: FormData): Promise<{ success: boolean; data?: Student; error?: string }> {
   const res = await createStudent(formData);
   if (!res.success || !res.data) {
@@ -279,14 +299,22 @@ export async function createStudentFromPortal(formData: FormData): Promise<{ suc
       full_name: s.full_name,
       contact_number: s.phone || '',
       email: s.email,
-      age: null,
+      age: s.date_of_birth ? computeAge(s.date_of_birth) : null,
+      date_of_birth: s.date_of_birth || null,
+      gender: s.gender || null,
+      address: s.address || null,
+      institution: s.institution || null,
+      year_of_passing: s.year_of_passing || null,
+      percentage_grade: s.percentage_grade || null,
+      job_category: s.job_category || null,
+      travel_preference: s.travel_preference || null,
       current_location: s.city || null,
       qualification: s.qualification || null,
       zone: s.zone || null,
       centre: s.centre || null,
-      course_name: null,
-      batch_completion_month: null,
-      batch_completion_year: null,
+      course_name: s.course_name || null,
+      batch_completion_month: s.batch_completion_month || null,
+      batch_completion_year: s.batch_completion_year || null,
       technical_skills: s.skills?.length ? s.skills.join(', ') : null,
       work_experience: null,
       nature_of_employment: null,
@@ -318,6 +346,17 @@ export interface LinkableRecordFields {
   preferred_job_role?: string | null;
   preferred_location?: string | null;
   expected_salary_stipend?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  institution?: string | null;
+  year_of_passing?: string | null;
+  percentage_grade?: string | null;
+  job_category?: string | null;
+  travel_preference?: string | null;
+  course_name?: string | null;
+  batch_completion_month?: string | null;
+  batch_completion_year?: string | number | null;
 }
 
 // Placement Records (manual entry / CSV import) don't carry document uploads or job
@@ -337,22 +376,25 @@ export async function ensureStudentLinkedByEmail(record: LinkableRecordFields): 
       full_name: record.full_name,
       email: record.email,
       phone: record.contact_number || '',
-      gender: '',
-      date_of_birth: '',
+      gender: record.gender || '',
+      date_of_birth: record.date_of_birth || '',
       zone: record.zone || '',
       centre: record.centre || '',
       city: record.current_location || '',
-      address: '',
+      address: record.address || '',
       qualification: record.qualification || '',
-      institution: '',
-      year_of_passing: '',
-      percentage_grade: '',
+      institution: record.institution || '',
+      year_of_passing: record.year_of_passing || '',
+      percentage_grade: record.percentage_grade || '',
+      course_name: record.course_name || '',
+      batch_completion_month: record.batch_completion_month || '',
+      batch_completion_year: record.batch_completion_year != null ? String(record.batch_completion_year) : '',
       skills: record.technical_skills ? record.technical_skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
       preferred_job_role: record.preferred_job_role || '',
       salary_expectation: record.expected_salary_stipend || '',
       preferred_city: record.preferred_location || '',
-      travel_preference: 'Within City',
-      job_category: '',
+      travel_preference: record.travel_preference || 'Within City',
+      job_category: record.job_category || '',
       status: 'Seeking',
       photo_url: null,
       resume_url: null,
@@ -420,5 +462,27 @@ export async function getStudentDocumentSignedUrl(path: string): Promise<{ url?:
     return { url: data.signedUrl };
   } catch (err: any) {
     return { error: err.message || 'Could not generate document link.' };
+  }
+}
+
+export async function getStudentDocumentSignedUrls(paths: string[]): Promise<{ urls: Record<string, string>; error?: string }> {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  if (uniquePaths.length === 0) return { urls: {} };
+
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await supabase.storage.from(DOCUMENTS_BUCKET).createSignedUrls(uniquePaths, 60 * 10);
+
+    if (error || !data) {
+      return { urls: {}, error: error?.message || 'Could not generate document links.' };
+    }
+
+    const urls: Record<string, string> = {};
+    data.forEach((entry, i) => {
+      if (entry.signedUrl) urls[uniquePaths[i]] = entry.signedUrl;
+    });
+    return { urls };
+  } catch (err: any) {
+    return { urls: {}, error: err.message || 'Could not generate document links.' };
   }
 }

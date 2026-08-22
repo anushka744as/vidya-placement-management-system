@@ -6,6 +6,14 @@ export interface PlacementRecord {
   contact_number: string;
   email: string;
   age: number | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  address: string | null;
+  institution: string | null;
+  year_of_passing: string | null;
+  percentage_grade: string | null;
+  job_category: string | null;
+  travel_preference: string | null;
   current_location: string | null;
   qualification: string | null;
   zone: string | null;

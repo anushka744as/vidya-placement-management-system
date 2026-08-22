@@ -216,7 +216,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   <MapPin size={16} className="text-gray-400" /> {job.location || `${job.city}, ${job.zone}`}
                 </span>
                 <span className="font-bold text-green-700 flex items-center gap-1.5">
-                  <DollarSign size={16} className="text-green-600" /> {formatSalary(job.salary_range)}
+                  <DollarSign size={16} className="text-green-600" /> Monthly Salary: {formatSalary(job.salary_range)}
                 </span>
               </div>
             </div>

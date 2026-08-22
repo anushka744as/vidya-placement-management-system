@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { StudentLayout } from '@/components/portal/StudentLayout';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { fetchResumeProfile, upsertResumeProfile } from '@/app/actions/portal';
@@ -35,6 +36,11 @@ export default function ResumeBuilderPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [generatingWord, setGeneratingWord] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const PHONE_PATTERN = /^\d{10}$/;
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -126,6 +132,7 @@ export default function ResumeBuilderPage() {
 
   // Save profile to Supabase
   const handleSaveProfile = async () => {
+    if (!validate()) return;
     if (!user?.id) {
       toast.success('Saved locally. Sign in to sync your resume and keep it linked to your applications.');
       return;
@@ -198,8 +205,39 @@ export default function ResumeBuilderPage() {
     setSkills(skills.filter((s) => s !== skillToRemove));
   };
 
+  // Validate mandatory fields before saving/exporting
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+
+    if (!fullName.trim()) errs.fullName = 'Full Name is required';
+    if (!email.trim()) {
+      errs.email = 'Email Address is required';
+    } else if (!EMAIL_PATTERN.test(email.trim())) {
+      errs.email = 'Please enter a valid email address';
+    }
+    if (!phone.trim()) {
+      errs.phone = 'Phone Number is required';
+    } else if (!PHONE_PATTERN.test(phone.trim())) {
+      errs.phone = 'Phone Number must be exactly 10 digits';
+    }
+    if (!education.some((edu) => edu.degree.trim() && edu.institution.trim())) {
+      errs.education = 'At least one Education entry (Degree & Institution) is required';
+    }
+    if (skills.length === 0) {
+      errs.skills = 'At least one skill is required';
+    }
+
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      toast.error('Please fix the highlighted fields before continuing.');
+      return false;
+    }
+    return true;
+  };
+
   // Generate & Download PDF
   const handleGeneratePDF = async () => {
+    if (!validate()) return;
     if (!resumeRef.current) return;
     setGeneratingPdf(true);
 
@@ -244,6 +282,86 @@ export default function ResumeBuilderPage() {
       toast.error('Failed to generate PDF resume.');
     } finally {
       setGeneratingPdf(false);
+    }
+  };
+
+  // Generate & Download Word (.docx)
+  const handleGenerateWord = async () => {
+    if (!validate()) return;
+    setGeneratingWord(true);
+
+    try {
+      const children: Paragraph[] = [
+        new Paragraph({ text: fullName || 'Your Full Name', heading: HeadingLevel.TITLE }),
+        new Paragraph({ text: [email, phone, location].filter(Boolean).join('  •  ') }),
+      ];
+
+      if (summary) {
+        children.push(
+          new Paragraph({ text: 'Professional Summary', heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
+          new Paragraph({ text: summary })
+        );
+      }
+
+      if (education.length > 0) {
+        children.push(new Paragraph({ text: 'Education', heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }));
+        education.forEach((edu) => {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${edu.degree || 'Degree / Course'} — `, bold: true }),
+                new TextRun({ text: `${edu.institution || 'Institution'} (${edu.year || ''})` }),
+              ],
+            })
+          );
+        });
+      }
+
+      if (experience.length > 0) {
+        children.push(new Paragraph({ text: 'Work Experience', heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }));
+        experience.forEach((exp) => {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${exp.role || 'Role'} — `, bold: true }),
+                new TextRun({ text: `${exp.company || ''} (${exp.duration || ''})` }),
+              ],
+            })
+          );
+          if (exp.description) children.push(new Paragraph({ text: exp.description }));
+        });
+      }
+
+      if (skills.length > 0) {
+        children.push(
+          new Paragraph({ text: 'Skills', heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
+          new Paragraph({ text: skills.join(', ') })
+        );
+      }
+
+      if (certifications) {
+        children.push(
+          new Paragraph({ text: 'Certifications', heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
+          new Paragraph({ text: certifications })
+        );
+      }
+
+      const doc = new Document({ sections: [{ children }] });
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fullName.replace(/\s+/g, '_') || 'Student'}_Resume.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Resume Word document generated and downloaded successfully!');
+    } catch (err: any) {
+      toast.error('Failed to generate Word resume.');
+    } finally {
+      setGeneratingWord(false);
     }
   };
 
@@ -292,7 +410,23 @@ export default function ResumeBuilderPage() {
                 </>
               ) : (
                 <>
-                  <Download size={14} /> Generate & Download PDF
+                  <Download size={14} /> Download PDF
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleGenerateWord}
+              disabled={generatingWord}
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 transition-all disabled:opacity-50"
+            >
+              {generatingWord ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Compiling Word...
+                </>
+              ) : (
+                <>
+                  <Download size={14} /> Download Word
                 </>
               )}
             </button>
@@ -310,37 +444,42 @@ export default function ResumeBuilderPage() {
               </h3>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Priya Sharma"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100"
+                    className={`w-full p-2.5 bg-gray-50 border rounded-xl text-xs focus:ring-2 focus:ring-blue-100 ${errors.fullName ? 'border-red-300' : 'border-gray-200'}`}
                   />
+                  {errors.fullName && <p className="mt-1 text-[10px] text-red-600">{errors.fullName}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Email Address <span className="text-red-500">*</span></label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="priya.sharma@example.com"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100"
+                    className={`w-full p-2.5 bg-gray-50 border rounded-xl text-xs focus:ring-2 focus:ring-blue-100 ${errors.email ? 'border-red-300' : 'border-gray-200'}`}
                   />
+                  {errors.email && <p className="mt-1 text-[10px] text-red-600">{errors.email}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Phone Number</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    maxLength={10}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-100"
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="9876543210"
+                    className={`w-full p-2.5 bg-gray-50 border rounded-xl text-xs focus:ring-2 focus:ring-blue-100 ${errors.phone ? 'border-red-300' : 'border-gray-200'}`}
                   />
+                  {errors.phone && <p className="mt-1 text-[10px] text-red-600">{errors.phone}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Location / City</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Location / City <span className="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
                   <input
                     type="text"
                     value={location}
@@ -367,7 +506,7 @@ export default function ResumeBuilderPage() {
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-l-4 border-orange-500 pl-3">
-                  2. Education History
+                  2. Education History <span className="text-red-500">*</span>
                 </h3>
                 <button
                   type="button"
@@ -377,6 +516,7 @@ export default function ResumeBuilderPage() {
                   <Plus size={14} /> Add Education
                 </button>
               </div>
+              {errors.education && <p className="text-[10px] text-red-600">{errors.education}</p>}
 
               {education.map((edu, idx) => (
                 <div key={idx} className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 relative space-y-3">
@@ -499,8 +639,9 @@ export default function ResumeBuilderPage() {
             {/* Section 4: Skills (Tag Input) */}
             <div className="space-y-3 pt-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-l-4 border-green-500 pl-3">
-                4. Key Skills
+                4. Key Skills <span className="text-red-500">*</span>
               </h3>
+              {errors.skills && <p className="text-[10px] text-red-600">{errors.skills}</p>}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -659,13 +800,22 @@ export default function ResumeBuilderPage() {
             {/* Action Bar Below Preview */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-between gap-3 shadow-sm">
               <span className="text-xs text-gray-500">Ready to download?</span>
-              <button
-                onClick={handleGeneratePDF}
-                disabled={generatingPdf}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-2xs"
-              >
-                <Download size={14} /> Download PDF
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleGeneratePDF}
+                  disabled={generatingPdf}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Download size={14} /> PDF
+                </button>
+                <button
+                  onClick={handleGenerateWord}
+                  disabled={generatingWord}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Download size={14} /> Word
+                </button>
+              </div>
             </div>
           </div>
         </div>

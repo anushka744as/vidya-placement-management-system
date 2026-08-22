@@ -5,6 +5,7 @@ import Papa from 'papaparse';
 import { PlacementRecord, PlacementRecordUpdate } from '@/lib/supabase/types';
 import { fetchPlacementRecords, updatePlacementRecord, deletePlacementRecord } from '@/app/actions/records';
 import { ZONES, CENTRES, COURSES, NATURE_OF_EMPLOYMENT, BATCH_YEARS } from '@/lib/constants';
+import { isValidPhone } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import {
@@ -118,6 +119,10 @@ export function RecordsTable({ refreshTrigger }: { refreshTrigger?: number }) {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRecord) return;
+    if (!editingRecord.contact_number || !isValidPhone(editingRecord.contact_number)) {
+      toast.error('Enter a valid 10-digit contact number.');
+      return;
+    }
     setIsSavingEdit(true);
     try {
       const res = await updatePlacementRecord(editingRecord.id, editingRecord as PlacementRecordUpdate);
@@ -159,6 +164,7 @@ export function RecordsTable({ refreshTrigger }: { refreshTrigger?: number }) {
       'Contact Number': r.contact_number,
       Email: r.email,
       Age: r.age ?? '',
+      'Date of Birth': r.date_of_birth ?? '',
       'Current Location': r.current_location ?? '',
       Qualification: r.qualification ?? '',
       Zone: r.zone ?? '',
@@ -168,10 +174,10 @@ export function RecordsTable({ refreshTrigger }: { refreshTrigger?: number }) {
       'Batch Year': r.batch_completion_year ?? '',
       'Technical Skills': r.technical_skills ?? '',
       'Work Experience': r.work_experience ?? '',
-      'Nature of Employment': r.nature_of_employment ?? '',
+      'Employment Type': r.nature_of_employment ?? '',
       'Preferred Job Role': r.preferred_job_role ?? '',
       'Preferred Location': r.preferred_location ?? '',
-      'Expected Salary': r.expected_salary_stipend ?? '',
+      'Expected Package / Salary': r.expected_salary_stipend ?? '',
       Source: r.source,
       'Created At': r.created_at ? new Date(r.created_at).toLocaleDateString() : '',
     }));
@@ -570,7 +576,7 @@ export function RecordsTable({ refreshTrigger }: { refreshTrigger?: number }) {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Nature of Employment</label>
+                  <label className="block font-semibold text-gray-700 mb-1">Employment Type</label>
                   <select
                     value={editingRecord.nature_of_employment ?? 'Full-Time'}
                     onChange={(e) =>

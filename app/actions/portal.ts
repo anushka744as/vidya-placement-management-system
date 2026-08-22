@@ -2,6 +2,7 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { ApplicationStatus, Job, JobApplication, ResumeProfile } from '@/lib/supabase/portal-types';
+import { SALARY_RANGE_BUCKETS } from '@/lib/constants';
 
 export interface FetchJobsFilters {
   search?: string;
@@ -9,6 +10,7 @@ export interface FetchJobsFilters {
   city?: string;
   sector?: string;
   job_type?: string;
+  salary_range?: string;
 }
 
 export async function fetchOpenJobs(filters: FetchJobsFilters = {}): Promise<{ data: Job[]; error?: string }> {
@@ -32,6 +34,15 @@ export async function fetchOpenJobs(filters: FetchJobsFilters = {}): Promise<{ d
     }
     if (filters.job_type && filters.job_type !== 'all') {
       query = query.eq('job_type', filters.job_type);
+    }
+    if (filters.salary_range && filters.salary_range !== 'all') {
+      const bucket = SALARY_RANGE_BUCKETS.find((b) => b.label === filters.salary_range);
+      if (bucket) {
+        query = query.not('salary_min', 'is', null).lte('salary_min', bucket.max);
+        if (bucket.max !== Infinity) {
+          query = query.gte('salary_max', bucket.min);
+        }
+      }
     }
 
     query = query.order('created_at', { ascending: false });
@@ -632,6 +643,28 @@ export async function getApplicationProofSignedUrl(path: string): Promise<{ url?
     return { url: data.signedUrl };
   } catch (err: any) {
     return { error: err.message || 'Could not generate document link.' };
+  }
+}
+
+export async function getApplicationProofSignedUrls(paths: string[]): Promise<{ urls: Record<string, string>; error?: string }> {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  if (uniquePaths.length === 0) return { urls: {} };
+
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data, error } = await supabase.storage.from(APPLICATION_PROOF_BUCKET).createSignedUrls(uniquePaths, 60 * 10);
+
+    if (error || !data) {
+      return { urls: {}, error: error?.message || 'Could not generate document links.' };
+    }
+
+    const urls: Record<string, string> = {};
+    data.forEach((entry, i) => {
+      if (entry.signedUrl) urls[uniquePaths[i]] = entry.signedUrl;
+    });
+    return { urls };
+  } catch (err: any) {
+    return { urls: {}, error: err.message || 'Could not generate document links.' };
   }
 }
 

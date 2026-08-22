@@ -6,6 +6,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { FIELD_DEFINITIONS, NATURE_OF_EMPLOYMENT } from '@/lib/constants';
 import { bulkInsertPlacementRecords, BulkInsertResult } from '@/app/actions/records';
 import { PlacementRecordInsert, NatureOfEmployment } from '@/lib/supabase/types';
+import { isValidPhone } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   Upload,
@@ -28,7 +29,7 @@ const TEMPLATE_SAMPLE_ROW: Record<string, string> = {
   full_name: 'Jane Doe',
   contact_number: '9876543210',
   email: 'jane.doe@example.com',
-  age: '24',
+  date_of_birth: '2000-05-15',
   current_location: 'Mumbai',
   qualification: 'B.Com',
   zone: 'West',
@@ -44,6 +45,16 @@ const TEMPLATE_SAMPLE_ROW: Record<string, string> = {
   expected_salary_stipend: '15000',
   additional_notes: 'Available to join immediately',
 };
+
+function computeAgeFromDOB(dob: string): number | null {
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) age--;
+  return age;
+}
 
 function downloadCSVTemplate() {
   const headers = FIELD_DEFINITIONS.map((field) => field.label);
@@ -168,6 +179,8 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
       }
       if (!mapped.contact_number) {
         errors.push('Contact Number is required');
+      } else if (!isValidPhone(mapped.contact_number)) {
+        errors.push(`Invalid contact number "${mapped.contact_number}" (must be a 10-digit number)`);
       }
       if (!mapped.email) {
         errors.push('Email Address is required');
@@ -175,11 +188,18 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
         errors.push('Invalid email format');
       }
 
-      // 2. Age check
-      if (mapped.age) {
-        const numAge = Number(mapped.age);
-        if (isNaN(numAge) || numAge < 15 || numAge > 85) {
-          errors.push(`Invalid age "${mapped.age}" (must be number between 15 and 85)`);
+      // 2. Date of Birth check
+      if (mapped.date_of_birth) {
+        const dob = new Date(mapped.date_of_birth);
+        if (isNaN(dob.getTime())) {
+          errors.push(`Invalid date of birth "${mapped.date_of_birth}" (use format YYYY-MM-DD)`);
+        } else {
+          const ageYears = (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+          if (ageYears < 15 || ageYears > 85) {
+            errors.push(`Invalid date of birth "${mapped.date_of_birth}" (age must be between 15 and 85 years)`);
+          } else {
+            mapped.date_of_birth = dob.toISOString().split('T')[0];
+          }
         }
       }
 
@@ -246,7 +266,15 @@ export function CSVUploadWizard({ onImportComplete }: { onImportComplete?: () =>
         full_name: r.mapped.full_name,
         contact_number: r.mapped.contact_number,
         email: r.mapped.email,
-        age: r.mapped.age ? Number(r.mapped.age) : null,
+        age: r.mapped.date_of_birth ? computeAgeFromDOB(r.mapped.date_of_birth) : null,
+        date_of_birth: r.mapped.date_of_birth || null,
+        gender: null,
+        address: null,
+        institution: null,
+        year_of_passing: null,
+        percentage_grade: null,
+        job_category: null,
+        travel_preference: null,
         current_location: r.mapped.current_location || null,
         qualification: r.mapped.qualification || null,
         zone: r.mapped.zone || null,
